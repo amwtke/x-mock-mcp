@@ -10,6 +10,8 @@
 
 `example/springboot/prepare.sh`、`test.sh`通过；`run.sh --http-port 0 --mysql-port 0`实际启动并完成10个HTTP请求，订单/库存/异常分支通过；SIGTERM清理后环境销毁、daemon正常停止。完整 `verify-plus.sh`全部通过，integration约237秒，新模块Java依赖另行通过无数据库引擎/启动库审计。见 [示例README](../example/springboot/README.md)、[实施计划](superpowers/plans/2026-09-13-springboot-orders.md) 和 [脱敏验收摘要](compatibility/springboot-orders-2026-09-13.json)。
 
+实现提交d98e805已合并并推送master，示例与README位于用户指定的 `example/springboot`。本地运行和浏览器证据保留于隔离工作树，当前任务完成。
+
 ## P1.3 MyBatis-Plus（2026-09-12）
 
 在当前会话逐项执行，未使用子代理。分支 `feat/p1-mybatis-plus`，复用 `.worktrees/p0`，基线 master a85214f。守住无真实数据库、无替代 SQL 引擎、无额外模型 API；左端对接应用，右端对接外部依赖，均独立插件。

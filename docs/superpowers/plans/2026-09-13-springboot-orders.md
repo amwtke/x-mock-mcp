@@ -33,4 +33,4 @@ Files：创建 `example/springboot/{prepare.sh,test.sh,run.sh,run.py,README.md}`
 - [x] prepare.sh只准备JVM依赖和Chromium；test.sh执行指定Go集成测试；run.py在独立临时项目启动已有daemon，经CLI/MCP创建mock环境，再启动Spring Boot，打印实际HTTP/MySQL地址，Ctrl-C清理所属进程及环境。run.sh负责工具链与构建。示例所有数据库连接均来自创建的左端环境。
 - [x] README写明目录、接口、QA、金额/身份/库存规则、运行和curl步骤、测试范围及无数据库约束。明确初始参考商品由Coding Agent按QA/代码/DDL准备，自动测试复用已审查候选，未额外调用模型。
 - [x] 执行 `bash example/springboot/prepare.sh`、`bash example/springboot/test.sh`；实际执行run命令并通过HTTP完成查询/下单/订单查询/库存检查。审计新模块Java依赖；现有全量验证回归；记录证据。
-- [ ] 按会话授权提交、合并并推送master。
+- [x] 按会话授权提交、合并并推送master，实现提交d98e805已于2026-09-13推送。
