@@ -214,6 +214,36 @@
       "path": "examples/springboot-shop/src/test/java/local/xmock/ShoppingBrowserTest.java",
       "kind": "test",
       "sha256": "a4b28bbc55c3ee6fde8e49bca201d506e6d85732fb8bf1b499d4e2d2d66033ad"
+    },
+    {
+      "path": "examples/springboot-shop/pom.xml",
+      "kind": "config",
+      "sha256": "d42d5f32e8a23b06bf8039dd4d747a02404347e0db12f1c3c0e5c6160bb089ae"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/DriverContractTest.java",
+      "kind": "test",
+      "sha256": "a8f852cbbcf86c21fccdcc2b8e13c7e41c225e272d576949a835b82345f77085"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/MapperContractTest.java",
+      "kind": "test",
+      "sha256": "fff2f2b455f18bbc695e79a65ea41cdefe4dc4185189d29608ac82a6a6dde768"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/MyBatisShopFlowTest.java",
+      "kind": "test",
+      "sha256": "28efc1caf5f3e2adc0c6e1bc965c9993a5187a1dd00828d8fe7d606747275864"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/MyBatisShoppingBrowserTest.java",
+      "kind": "test",
+      "sha256": "4320b58adf5b23617bfa6f0ade9c3a8269fa90bc8d0e677f6e4d2dc0c93124bf"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/TransactionContractTest.java",
+      "kind": "test",
+      "sha256": "1b1ab7d251ba555f65bc12bfa505da07a8028e8fb296e20438e9cbc837d154da"
     }
   ]
 }

@@ -136,14 +136,24 @@
       "sha256": "947a2af1f9f1357597faf2259416333c64b882c69ca428899e641b42eba5c8af"
     },
     {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/CartInsert.java",
+      "kind": "code",
+      "sha256": "9cfdf685423a071660ae2e14752b338bbed10f447f08a6f30ffffa182211a5df"
+    },
+    {
       "path": "examples/springboot-shop/src/main/java/local/xmock/CartService.java",
       "kind": "code",
-      "sha256": "f2dee684a1ab449891d09b214155b4b65637fd8cf779eb70af226d7d109285db"
+      "sha256": "f9a05aca4626cbafd5f6ad080d7a341761b1506ed230fce9d0d76bd1e4ef3e28"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/MyBatisShopRepository.java",
+      "kind": "code",
+      "sha256": "55afdc81cd90f68d9a83251ad4a7390e1477925fc615af4620e68050be1e5c52"
     },
     {
       "path": "examples/springboot-shop/src/main/java/local/xmock/ProductController.java",
       "kind": "code",
-      "sha256": "1465b448e33691a2b220c573c7e1c225d28d9f03f26d4074a91966bf44c6b6b0"
+      "sha256": "ba08824a7db8272c7f17d0e069b61636fde28f96a8989b5522bf787c88ef5759"
     },
     {
       "path": "examples/springboot-shop/src/main/java/local/xmock/ShopApplication.java",
@@ -151,9 +161,19 @@
       "sha256": "21bb4c0aa74688f8ad9435753a5bb86f255a2c9a5b376ed5d5c1d2aea1af0179"
     },
     {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/ShopDataAccess.java",
+      "kind": "code",
+      "sha256": "ead2c3c4486a4174207855e3687641ddf674d97f63ec61d191efe6feb5cad740"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/ShopMapper.java",
+      "kind": "code",
+      "sha256": "78dd6f2a24202569fbf0dc7eb0ecf56bac1146c2733363baa21cd39eae698450"
+    },
+    {
       "path": "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java",
       "kind": "code",
-      "sha256": "6bc3726e04f88b136be1b59b9aa6f9137caef77cf28303c4eff5996233aeec7f"
+      "sha256": "a7d6785c11c695f2d49904c44ae53722a36fb026f037c763eb67ad7cdc9598a4"
     },
     {
       "path": "examples/springboot-shop/src/main/java/local/xmock/TestIdentity.java",
@@ -164,6 +184,16 @@
       "path": "examples/springboot-shop/src/main/resources/application-mock.properties",
       "kind": "code",
       "sha256": "5eda128c9f6f34b86df265455bf9c03964a0e550d36db40ac90e62510d83ffbe"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/resources/application-mybatis.properties",
+      "kind": "code",
+      "sha256": "97d10f43f06321e329e9ba489748715b0bc6c8f3fc8754a7902131eded9aac02"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+      "kind": "code",
+      "sha256": "45d4d7fbee879f5a2e64541467b826305b02a981a78b1ce9ff8439a4aeb031c6"
     },
     {
       "path": "examples/springboot-shop/src/main/resources/static/index.html",

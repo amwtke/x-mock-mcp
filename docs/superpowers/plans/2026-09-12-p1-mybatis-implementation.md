@@ -31,14 +31,14 @@ export PLAYWRIGHT_BROWSERS_PATH="$PWD/.tools/playwright-browsers"
 
 ## Task 1：源码策略入口
 
-- [ ] 写 prepare 行为测试：原 Java 场景仍 ready；显式未知策略拒绝；XML 即使注释含候选 SQL 也不能走默认 Java 原文检查。测试使用 `preparationFixture(t)`，通过原生 JSON 注入新字段，预期缺少策略时失败。
+- [x] 写 prepare 行为测试：原 Java 场景仍 ready；显式未知策略拒绝；XML 即使注释含候选 SQL 也不能走默认 Java 原文检查。测试使用 `preparationFixture(t)`，通过原生 JSON 注入新字段，预期缺少策略时失败。
 
 ```go
 candidate["database_scenario"].(map[string]any)["statements"].([]any)[0].(map[string]any)["source"] = map[string]any{"strategy":"mybatis-xml", "namespace":"local.xmock.ShopMapper", "statement_id":"product"}
 ```
 
-- [ ] 运行 `$X_MOCK_GO test ./plugins/right/mysql-mock -run 'Test.*Source' -count=1`，确认新增正例因未识别 `source` 失败。
-- [ ] 增加可选来源类型和校验接口；注册表只在右端进程内部选择策略，旧默认仅接受 `.java` 文件。读取对象仍来自 prepare 已验证 SHA 的 `files`。
+- [x] 运行 `$X_MOCK_GO test ./plugins/right/mysql-mock -run 'Test.*Source' -count=1`，确认新增正例因未识别 `source` 失败。
+- [x] 增加可选来源类型和校验接口；注册表只在右端进程内部选择策略，旧默认仅接受 `.java` 文件。读取对象仍来自 prepare 已验证 SHA 的 `files`。
 
 ```go
 type StatementSource struct {
@@ -51,14 +51,14 @@ type sourceStrategy interface { Validate(Statement, []byte) error }
 // prepare 的 literal Contains 检查替换为 validateStatementSource(statement, files)。
 ```
 
-- [ ] 同一命令变绿并运行全部右端测试；提交 `feat: validate SQL evidence through right-side strategies`。
+- [x] 同一命令变绿并运行全部右端测试；提交 `feat: validate SQL evidence through right-side strategies`。
 
 ## Task 2：静态 MyBatis XML
 
-- [ ] 写行为矩阵：`#{id}` / `#{id,jdbcType=BIGINT}` 接受；CDATA、XML 注释、显式 resultMap 不影响静态 SQL；更新真实文件并刷新 SHA 后的漏条件、参数顺序交换、错误 namespace/id、重复 id、伪造 SQL 拒绝。
-- [ ] 拒绝动态 `if/foreach/include/selectKey`、`${}`、外部实体/自定义 DTD、CALLABLE、databaseId、自定义 language/typeHandler；断言报告定位 XML 文件和 statement id。验证字面量中双空格不能被归一化为单空格。
-- [ ] 运行 `$X_MOCK_GO test ./plugins/right/mysql-mock -run 'Test.*MyBatis' -count=1` 观察预期失败。
-- [ ] 用 `encoding/xml.Decoder` 读取唯一 mapper 根，定位直接子语句；选中语句只允许文本/CDATA。标准 MyBatis DTD 只作声明，禁止内部子集，不访问网络。参数解析要求属性名与 `Statement.Parameters[i].Name` 一致，jdbcType 与当前类型一致；拒绝转义占位符和未知选项。两份完整 SQL 使用 parser AST Restore 比较，不使用忽略字面量的字符串空白归一化。
+- [x] 写行为矩阵：`#{id}` / `#{id,jdbcType=BIGINT}` 接受；CDATA、XML 注释、显式 resultMap 不影响静态 SQL；更新真实文件并刷新 SHA 后的漏条件、参数顺序交换、错误 namespace/id、重复 id、伪造 SQL 拒绝。
+- [x] 拒绝动态 `if/foreach/include/selectKey`、`${}`、外部实体/自定义 DTD、CALLABLE、databaseId、自定义 language/typeHandler；断言报告定位 XML 文件和 statement id。验证字面量中双空格不能被归一化为单空格。
+- [x] 运行 `$X_MOCK_GO test ./plugins/right/mysql-mock -run 'Test.*MyBatis' -count=1` 观察预期失败。
+- [x] 用 `encoding/xml.Decoder` 读取唯一 mapper 根，定位直接子语句；选中语句只允许文本/CDATA。标准 MyBatis DTD 只作声明，禁止内部子集，不访问网络。参数解析要求属性名与 `Statement.Parameters[i].Name` 一致，jdbcType 与当前类型一致；拒绝转义占位符和未知选项。两份完整 SQL 使用 parser AST Restore 比较，不使用忽略字面量的字符串空白归一化。
 
 ```go
 // #{userId,jdbcType=BIGINT} -> SQL "?", mapping "userId" / BIGINT。
@@ -66,12 +66,12 @@ type sourceStrategy interface { Validate(Statement, []byte) error }
 // 任何错误由 prepare 归入 SOURCE_EVIDENCE 诊断，编译失败继续归入 UNSUPPORTED_SQL。
 ```
 
-- [ ] 运行上述测试和 `$X_MOCK_GO test -race ./plugins/right/mysql-mock`，提交 `feat: ground MyBatis statements in static mapper XML`。
+- [x] 运行上述测试和 `$X_MOCK_GO test -race ./plugins/right/mysql-mock`，提交 `feat: ground MyBatis statements in static mapper XML`。
 
 ## Task 3：真实购物 Mapper 与夹具
 
 - [ ] 新增离线 `MapperContractTest`：使用真实 MyBatis XMLMapperBuilder 和 `MappedStatement.getBoundSql`，无需 DataSource；核对六条 SQL、参数 property 顺序、生成键与结果映射。运行 `mvn -B -ntp -f examples/springboot-shop/pom.xml -Dtest=MapperContractTest test` 观察 Mapper 资源缺失失败。
-- [ ] POM 增加锁定的 MyBatis starter；原 Repository 增加 `!mybatis` profile。新增 `mybatis` Repository 子类重用现有 Product/CartItem 公共类型，六个操作全部经注入的 `@Mapper` 调用，INSERT 校验 changed=1 和回填生成键。
+- [ ] POM 增加锁定的 MyBatis starter；原 Repository 增加 `!mybatis` profile。新增 `ShopDataAccess` 接口供原 Repository 和 `mybatis` Repository 实现，重用现有 Product/CartItem 公共类型，六个操作全部经注入的 `@Mapper` 调用，INSERT 校验 changed=1 和回填生成键。
 
 ```java
 @Mapper

@@ -214,6 +214,36 @@
       "path": "examples/springboot-shop/src/test/java/local/xmock/ShoppingBrowserTest.java",
       "kind": "test",
       "sha256": "a4b28bbc55c3ee6fde8e49bca201d506e6d85732fb8bf1b499d4e2d2d66033ad"
+    },
+    {
+      "path": "examples/springboot-shop/pom.xml",
+      "kind": "config",
+      "sha256": "d42d5f32e8a23b06bf8039dd4d747a02404347e0db12f1c3c0e5c6160bb089ae"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/DriverContractTest.java",
+      "kind": "test",
+      "sha256": "a8f852cbbcf86c21fccdcc2b8e13c7e41c225e272d576949a835b82345f77085"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/MapperContractTest.java",
+      "kind": "test",
+      "sha256": "fff2f2b455f18bbc695e79a65ea41cdefe4dc4185189d29608ac82a6a6dde768"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/MyBatisShopFlowTest.java",
+      "kind": "test",
+      "sha256": "28efc1caf5f3e2adc0c6e1bc965c9993a5187a1dd00828d8fe7d606747275864"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/MyBatisShoppingBrowserTest.java",
+      "kind": "test",
+      "sha256": "4320b58adf5b23617bfa6f0ade9c3a8269fa90bc8d0e677f6e4d2dc0c93124bf"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/TransactionContractTest.java",
+      "kind": "test",
+      "sha256": "1b1ab7d251ba555f65bc12bfa505da07a8028e8fb296e20438e9cbc837d154da"
     }
   ],
   "step_bindings": [
@@ -358,8 +388,224 @@
     "database": "app",
     "mode": "stateful",
     "initial": {
-      "products": [
-        {
+      "products": [],
+      "cart_items": []
+    },
+    "statements": [
+      {
+        "id": "list-products",
+        "sql": "SELECT id, name, price_cents, stock, status FROM products WHERE status = ? ORDER BY id",
+        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "parameters": [
+          {
+            "name": "status",
+            "type": "VARCHAR",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "VARCHAR",
+                "value": "ON_SALE"
+              }
+            ]
+          }
+        ],
+        "source": {
+          "strategy": "mybatis-xml",
+          "namespace": "local.xmock.ShopMapper",
+          "statement_id": "products"
+        }
+      },
+      {
+        "id": "product-detail",
+        "sql": "SELECT id, name, price_cents, stock, status FROM products WHERE id = ?",
+        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "parameters": [
+          {
+            "name": "id",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1001"
+              }
+            ]
+          }
+        ],
+        "source": {
+          "strategy": "mybatis-xml",
+          "namespace": "local.xmock.ShopMapper",
+          "statement_id": "product"
+        }
+      },
+      {
+        "id": "find-cart-item",
+        "sql": "SELECT id, user_id, product_id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?",
+        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "parameters": [
+          {
+            "name": "userId",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "2001"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2002"
+              }
+            ]
+          },
+          {
+            "name": "productId",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1001"
+              }
+            ]
+          }
+        ],
+        "source": {
+          "strategy": "mybatis-xml",
+          "namespace": "local.xmock.ShopMapper",
+          "statement_id": "item"
+        }
+      },
+      {
+        "id": "list-cart",
+        "sql": "SELECT id, user_id, product_id, quantity FROM cart_items WHERE user_id = ? ORDER BY id",
+        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "parameters": [
+          {
+            "name": "userId",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "2001"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2002"
+              }
+            ]
+          }
+        ],
+        "source": {
+          "strategy": "mybatis-xml",
+          "namespace": "local.xmock.ShopMapper",
+          "statement_id": "cart"
+        }
+      },
+      {
+        "id": "insert-cart",
+        "sql": "INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)",
+        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "parameters": [
+          {
+            "name": "userId",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "2001"
+              }
+            ]
+          },
+          {
+            "name": "productId",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1001"
+              }
+            ]
+          },
+          {
+            "name": "quantity",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1"
+              }
+            ]
+          }
+        ],
+        "source": {
+          "strategy": "mybatis-xml",
+          "namespace": "local.xmock.ShopMapper",
+          "statement_id": "insert"
+        }
+      },
+      {
+        "id": "increment-cart",
+        "sql": "UPDATE cart_items SET quantity = quantity + ? WHERE id = ? AND user_id = ?",
+        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "parameters": [
+          {
+            "name": "quantity",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "name": "id",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "5001"
+              }
+            ]
+          },
+          {
+            "name": "userId",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "2001"
+              }
+            ]
+          }
+        ],
+        "source": {
+          "strategy": "mybatis-xml",
+          "namespace": "local.xmock.ShopMapper",
+          "statement_id": "increment"
+        }
+      }
+    ],
+    "next_ids": {
+      "cart_items": "5001"
+    },
+    "transaction": "READ-COMMITTED",
+    "generation_slots": [
+      {
+        "id": "p1",
+        "table": "products",
+        "keys": [
+          "1001"
+        ],
+        "fixed": {
           "id": {
             "type": "BIGINT",
             "value": "1001"
@@ -380,187 +626,11 @@
             "type": "VARCHAR",
             "value": "ON_SALE"
           }
-        }
-      ],
-      "cart_items": []
-    },
-    "statements": [
-      {
-        "id": "list-products",
-        "sql": "SELECT id, name, price_cents, stock, status FROM products WHERE status = ? ORDER BY id",
-        "source_path": "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java",
-        "parameters": [
-          {
-            "name": "p0",
-            "type": "VARCHAR",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "VARCHAR",
-                "value": "ON_SALE"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "product-detail",
-        "sql": "SELECT id, name, price_cents, stock, status FROM products WHERE id = ?",
-        "source_path": "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java",
-        "parameters": [
-          {
-            "name": "p0",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "1001"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "find-cart-item",
-        "sql": "SELECT id, user_id, product_id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?",
-        "source_path": "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java",
-        "parameters": [
-          {
-            "name": "p0",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "2001"
-              },
-              {
-                "type": "BIGINT",
-                "value": "2002"
-              }
-            ]
-          },
-          {
-            "name": "p1",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "1001"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "list-cart",
-        "sql": "SELECT id, user_id, product_id, quantity FROM cart_items WHERE user_id = ? ORDER BY id",
-        "source_path": "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java",
-        "parameters": [
-          {
-            "name": "p0",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "2001"
-              },
-              {
-                "type": "BIGINT",
-                "value": "2002"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "insert-cart",
-        "sql": "INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)",
-        "source_path": "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java",
-        "parameters": [
-          {
-            "name": "p0",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "2001"
-              }
-            ]
-          },
-          {
-            "name": "p1",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "1001"
-              }
-            ]
-          },
-          {
-            "name": "p2",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "1"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "increment-cart",
-        "sql": "UPDATE cart_items SET quantity = quantity + ? WHERE id = ? AND user_id = ?",
-        "source_path": "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java",
-        "parameters": [
-          {
-            "name": "p0",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "1"
-              }
-            ]
-          },
-          {
-            "name": "p1",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "5001"
-              }
-            ]
-          },
-          {
-            "name": "p2",
-            "type": "BIGINT",
-            "nullable": false,
-            "allowed": [
-              {
-                "type": "BIGINT",
-                "value": "2001"
-              }
-            ]
-          }
-        ]
+        },
+        "seed": 42,
+        "materialized": false
       }
-    ],
-    "next_ids": {
-      "cart_items": "5001"
-    },
-    "transaction": "READ-COMMITTED"
+    ]
   },
   "verification": {
     "expect_calls": {
@@ -649,7 +719,7 @@
   "replay": {
     "seed": 42,
     "clock": "2026-09-12T00:00:00Z",
-    "requires_generation": false
+    "requires_generation": true
   },
   "preview": [
     {

@@ -7,7 +7,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 @Repository
-public class ShopRepository {
+@org.springframework.context.annotation.Profile("!mybatis")
+public class ShopRepository implements ShopDataAccess {
  public record Product(long id,String name,long priceCents,long stock,String status){}
  public record CartItem(long id,long userId,long productId,long quantity){}
  private final JdbcTemplate jdbc;

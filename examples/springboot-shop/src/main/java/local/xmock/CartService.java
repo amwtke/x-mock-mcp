@@ -10,8 +10,8 @@ public class CartService {
  public record Added(long cartItemId,long productId,long quantity,boolean created){}
  public record Line(long cartItemId,long productId,String name,long quantity,long priceCents){}
  public record Cart(List<Line> items,long totalCents){}
- private final ShopRepository repository;
- public CartService(ShopRepository repository){this.repository=repository;}
+ private final ShopDataAccess repository;
+ public CartService(ShopDataAccess repository){this.repository=repository;}
  @Transactional(isolation=Isolation.READ_COMMITTED)
  public Added add(long user,long productId,long quantity){
   if(quantity<1)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"quantity must be positive");
