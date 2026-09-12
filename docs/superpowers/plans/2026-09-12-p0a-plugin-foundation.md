@@ -332,9 +332,9 @@ Record 包含 Ref、ArchiveSHA256、Enabled、ActiveInstances。Acquire 只接�
 
 ## Task A4: 并发 Plugin IPC
 
-- [ ] 先用 net.Pipe 或 io.Pipe 创建一对 Peer；提交两个请求，让服务端倒序返回，断言客户端分别收到正确响应。增加其中一个请求取消而另一个成功的测试。
-- [ ] 运行 `go test ./internal/plugin/ipc -run 'TestOutOfOrder|TestCancel' -count=1`，确认失败。
-- [ ] 实现 Peer 的公共 API 和消息形式：
+- [x] 先用 net.Pipe 或 io.Pipe 创建一对 Peer；提交两个请求，让服务端倒序返回，断言客户端分别收到正确响应。增加其中一个请求取消而另一个成功的测试。
+- [x] 运行 `go test ./internal/plugin/ipc -run 'TestOutOfOrder|TestCancel' -count=1`，确认失败。
+- [x] 实现 Peer 的公共 API 和消息形式：
 
 ```text
 NewPeer(reader io.ReadCloser, writer io.WriteCloser, handler Handler) *Peer
@@ -353,8 +353,8 @@ cancel:   {"jsonrpc":"2.0","method":"cancel","params":{"request_id":"core-1"}}
 
 ctx 完成时原子摘除 pending，发送 cancel 通知并返回 ctx 错误；收到迟到响应丢弃。EOF/Close 时完成所有 waiter 并取消正在执行的 handler。JSON number 解码使用 UseNumber，不能把业务 BIGINT 自动变成 float64。
 
-- [ ] 添加超过消息上限、未知响应 ID、重复响应、非法 JSON、请求与响应字段混用、处理函数 panic 的测试；错误不能杀死 daemon 或使其他 waiter 永久等待。
-- [ ] 运行 `go test -race ./internal/plugin/ipc -count=1`。提交：`feat: add cancellable multiplexed plugin IPC`。
+- [x] 添加超过消息上限、未知响应 ID、重复响应、非法 JSON、请求与响应字段混用、处理函数 panic 的测试；错误不能杀死 daemon 或使其他 waiter 永久等待。
+- [x] 运行 `go test -race ./internal/plugin/ipc -count=1`。提交：`feat: add cancellable multiplexed plugin IPC`。
 
 ## Task A5: 进程策略代理与原子 binding
 
