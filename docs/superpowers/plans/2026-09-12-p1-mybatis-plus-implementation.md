@@ -74,7 +74,7 @@ Files：新增 integration/mybatis_plus_test.go；扩展 agent_flow/shopping_def
 - [x] 右端升级0.3.0；旧0.1.0实际源码升级测试继续与新右端共享左端0.1.0。修改旧版本测试固定“当前”为0.3.0。构建仍独立打包，检查左端包摘要。
 - [x] `verify-plus.sh` 复用 verify-p1.sh，增加 Plus离线框架契约和依赖审计。运行准备依赖（只 JVM依赖/Chromium）、全量 core-race/integration/vet/build；更新可直接运行的 Plus HTTP/浏览器/删除演示并实际执行。
 - [x] 记录真实版本、能力边界、回放ID和业务轨迹摘要。保留本地工具链与验收证据，不要求 Claude 账号。
-- [ ] 沿用用户授权，提交、合并并推送 master。
+- [x] 沿用用户授权，提交、合并并推送 master（实现交付 df5949e，2026-09-13 确认远端一致）。
 
 ## 自审
 

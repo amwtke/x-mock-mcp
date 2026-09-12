@@ -16,6 +16,8 @@
 
 `scripts/verify-plus.sh` 全部PASS，包含旧JdbcTemplate、XML和Plus、JDBC两种预编译/计数模式、事务、HTTP/stdio、实际0.1.0/0.3.0右端并存卸载、vet/build与无数据库依赖审计。左端安装包摘要与P0/P1.1相同。plus-http、plus-browser、plus-delete演示均成功，环境销毁、daemon正常退出；见 [脱敏运行摘要](compatibility/mybatis-plus-2026-09-12.json)。
 
+2026-09-13 已按用户授权将实现提交df5949e合并并推送master，确认远端一致；隔离工作树中的工具链与本地验收证据保留。当前阶段完成。
+
 ## P1.1 MyBatis（2026-09-12）
 
 执行方式仍为当前会话逐项实现与验证，无子代理。复用隔离工作树 `.worktrees/p0`，分支 `feat/p1-mybatis`，基于已合并 master 的 P0 68ba0aa。

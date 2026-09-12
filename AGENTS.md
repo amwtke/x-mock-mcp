@@ -10,4 +10,4 @@
 - 所有运行固定插件、契约、场景和输入证据版本。
 - 未支持行为明确失败，不用空结果或自动成功掩盖缺陷。
 - 用户选择在当前会话逐项实现和验证，不启用子代理。
-- P0/P1.1 已合并 master；P1.3 MyBatis-Plus 已完成实现与全量验收。当前计划为 docs/superpowers/plans/2026-09-12-p1-mybatis-plus-implementation.md，实际进度与后续范围见 docs/implementation-progress.md。
+- P0/P1.1/P1.3 MyBatis-Plus 已完成实现、全量验收并合并推送 master。最近完成的计划为 docs/superpowers/plans/2026-09-12-p1-mybatis-plus-implementation.md，实际进度与能力边界见 docs/implementation-progress.md。
