@@ -42,8 +42,8 @@
 
 ## Task B1: 锁定 MySQL 操作与类型契约
 
-- [ ] 将主计划固定的 go-mysql 与 parser 版本加入 go.mod，运行 go mod tidy 并提交 go.sum；读取固定 tag 下的 server/command.go、server/stmt.go、stmt/stmt.go，记录 prepared metadata 传递路径。发现 API 与计划不同则先修正本适配层，不能修改核心策略接口来迁就库。
-- [ ] 新建 contracts/mysqlv1 类型，使用以下完整数据形状：
+- [x] 将主计划固定的 go-mysql 与 parser 版本加入 go.mod，运行 go mod tidy 并提交 go.sum；读取固定 tag 下的 server/command.go、server/stmt.go、stmt/stmt.go，记录 prepared metadata 传递路径。发现 API 与计划不同则先修正本适配层，不能修改核心策略接口来迁就库。
+- [x] 新建 contracts/mysqlv1 类型，使用以下完整数据形状：
 
 ```go
 package mysqlv1
@@ -113,7 +113,7 @@ type Error struct {
 
 MySQL 契约 ID=`mysql.operation`，Version=1。操作名固定为 connection.open、connection.close、database.use、query、statement.prepare、statement.execute、statement.close、statement.reset。prepare/execute 使用 Query/Metadata；关闭、重置只携带 statement_id，归属校验必须包含 connection_id。连接打开 payload 包含协商后的 found_rows 等语义选项；事务命令通过 query 传右端解析，核心不识别事务 SQL。DML prepare 的 Columns 为空数组。
 
-- [ ] 为 ValidateRows(metadata, rows) 编写负例：BIGINT 超出 int64、错误列名、缺列、多列、非 nullable 的 NULL、字符串冒充数字、结果超过 1000 行或 1 MiB。文本 "9007199254740993" 必须保持精确值。
+- [x] 为 ValidateRows(metadata, rows) 编写负例：BIGINT 超出 int64、错误列名、缺列、多列、非 nullable 的 NULL、字符串冒充数字、结果超过 1000 行或 1 MiB。文本 "9007199254740993" 必须保持精确值。
 
 ```go
 func TestBigintWireValueValidation(t *testing.T) {
@@ -140,7 +140,7 @@ func TestBigintWireValueValidation(t *testing.T) {
 
 把此测试与元数据比较测试放在 validate_test.go，导入 encoding/json、testing；ValidateRows 的签名为 `ValidateRows(metadata Metadata, rows Rows) error`。类型校验测试不能替代后面的真实驱动测试。
 
-- [ ] 加入 OK 计数溢出、非法负数、事务状态、DML 零列 metadata、EntityFill 类型及 slot 归属的测试。运行 `go test ./contracts/mysqlv1 -count=1`；提交：`feat: define typed mysql query and mutation contracts`。
+- [x] 加入 OK 计数溢出、非法负数、事务状态、DML 零列 metadata、EntityFill 类型及 slot 归属的测试。运行 `go test ./contracts/mysqlv1 -count=1`；提交：`feat: define typed mysql query and mutation contracts`。
 
 ## Task B2: QA 输入契约与离线场景编译
 
@@ -154,7 +154,7 @@ validate QA and project input -> verify evidence file digests
 -> parse source-linked SQL templates -> infer parameters/columns
 -> compile supported AST nodes into fixed plans
 -> check step/API/SQL bindings and declared parameter domains
--> simulate ordered operations on a disposable state copy
+-> simulate ordered operations on a disposable state copy (B4 executor)
 -> compare QA constraints and expected final state
 -> return canonical bundle, input digest and compiled digest
 ```

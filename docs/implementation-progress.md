@@ -12,8 +12,8 @@
 | A4 并发 IPC | 完成 | go test -race ./internal/plugin/ipc 通过；乱序、取消、写阻塞时取消、EOF、panic、4 MiB 上限与非法帧 |
 | A5 进程代理与 binding | 完成 | runtime/binding race 测试、真实启动回滚、端口占用与准备进程回收通过 |
 | A6 真实插件验证 | 完成 | 真实 TCP/子进程生命周期、崩溃隔离、新 ID 插件、无左端准备通过；go test ./... 通过 |
-| B1 MySQL 类型契约 | 待执行 | 无 |
-| B2 QA 输入与编译 | 待执行 | 无 |
+| B1 MySQL 类型契约 | 完成 | BIGINT 精度/溢出、NULL/列元数据、OK 计数与严格 JSON schema 测试通过 |
+| B2 QA 输入与编译 | 进行中 | QA 缺口、源码摘要、DDL、SQL 条件与固定价格校验通过；执行预演随 B4 状态执行器完成 |
 | B3 右端查询 | 待执行 | 无 |
 | B4 写入与事务 | 待执行 | 无 |
 | B5 左端 MySQL 协议 | 待执行 | 无 |
