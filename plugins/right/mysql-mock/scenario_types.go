@@ -80,12 +80,13 @@ type Parameter struct {
 	Allowed  []mysqlv1.Value `json:"allowed"`
 }
 type Statement struct {
-	ID         string        `json:"id"`
-	SQL        string        `json:"sql"`
-	SourcePath string        `json:"source_path"`
-	Parameters []Parameter   `json:"parameters"`
-	Plan       *Plan         `json:"plan,omitempty"`
-	Cases      []FixtureCase `json:"cases,omitempty"`
+	ID         string           `json:"id"`
+	SQL        string           `json:"sql"`
+	SourcePath string           `json:"source_path"`
+	Source     *StatementSource `json:"source,omitempty"`
+	Parameters []Parameter      `json:"parameters"`
+	Plan       *Plan            `json:"plan,omitempty"`
+	Cases      []FixtureCase    `json:"cases,omitempty"`
 }
 type FixtureCase struct {
 	Params []mysqlv1.Value     `json:"params"`

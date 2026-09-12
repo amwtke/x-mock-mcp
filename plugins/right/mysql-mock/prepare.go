@@ -164,9 +164,8 @@ func (p *plugin) Prepare(ctx context.Context, spec pluginapi.PreparationSpec) (p
 			continue
 		}
 		statements[statement.ID] = true
-		code, exists := files[statement.SourcePath]
-		if !exists || !strings.Contains(strings.Join(strings.Fields(string(code)), " "), strings.Join(strings.Fields(statement.SQL), " ")) {
-			problem(statement.SourcePath, "源码证据中未找到声明的 SQL；复杂动态 SQL 需要明确分支证据")
+		if err := validateStatementSource(statement, files); err != nil {
+			problem(statement.SourcePath, err.Error())
 			continue
 		}
 		plan, err := Compile(statement, tables, db.Database)
