@@ -1,0 +1,12 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "mode": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "mode"
+  ],
+  "type": "object"
+}

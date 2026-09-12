@@ -1,0 +1,123 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "qa": {
+      "additionalProperties": false,
+      "properties": {
+        "ambiguities": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "coverage": {
+          "type": "string"
+        },
+        "data_policy": {
+          "type": "string"
+        },
+        "fixed": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "goal": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "initial_state": {
+          "type": "string"
+        },
+        "natural_language": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "start_page": {
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "expected": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "action",
+              "expected"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "write_rules": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "goal",
+        "natural_language",
+        "start_page",
+        "role",
+        "initial_state",
+        "data_policy",
+        "write_rules",
+        "coverage",
+        "steps",
+        "fixed"
+      ],
+      "type": "object"
+    },
+    "sources": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    }
+  },
+  "required": [
+    "qa",
+    "sources"
+  ],
+  "type": "object"
+}

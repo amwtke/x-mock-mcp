@@ -1,0 +1,950 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "api_expectations": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "assertions": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "step_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "step_id",
+          "method",
+          "path",
+          "status"
+        ],
+        "type": "object"
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
+    "data_bindings": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "column": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "qa_key": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "qa_key",
+          "table",
+          "key",
+          "column"
+        ],
+        "type": "object"
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
+    "database_scenario": {
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "type": "string"
+        },
+        "generation_slots": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "fixed": {
+                "additionalProperties": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "value": true
+                  },
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              "id": {
+                "type": "string"
+              },
+              "keys": {
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "materialized": {
+                "type": "boolean"
+              },
+              "seed": {
+                "type": "integer"
+              },
+              "table": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "table",
+              "keys",
+              "fixed",
+              "seed",
+              "materialized"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "initial": {
+          "additionalProperties": {
+            "items": {
+              "additionalProperties": {
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": true
+                },
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "type": "object"
+              },
+              "type": "object"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "type": "object"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "next_ids": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "statements": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "cases": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "params": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "value": true
+                        },
+                        "required": [
+                          "type",
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "rows": {
+                      "items": {
+                        "items": true,
+                        "type": [
+                          "null",
+                          "array"
+                        ]
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "params",
+                    "rows"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "id": {
+                "type": "string"
+              },
+              "parameters": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "allowed": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "value": true
+                        },
+                        "required": [
+                          "type",
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "nullable",
+                    "allowed"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "plan": {
+                "additionalProperties": false,
+                "properties": {
+                  "assignments": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "add_from": {
+                          "type": "string"
+                        },
+                        "column": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "literal": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "type": {
+                                  "type": "string"
+                                },
+                                "value": true
+                              },
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "type": [
+                                "null",
+                                "object"
+                              ]
+                            },
+                            "parameter": {
+                              "type": [
+                                "null",
+                                "integer"
+                              ]
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "column",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "columns": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "nullable": {
+                          "type": "boolean"
+                        },
+                        "type": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "type",
+                        "nullable"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "minimum": 0,
+                    "type": [
+                      "null",
+                      "integer"
+                    ]
+                  },
+                  "order": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "column": {
+                          "type": "string"
+                        },
+                        "descending": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "column",
+                        "descending"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "parameters": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "nullable": {
+                          "type": "boolean"
+                        },
+                        "type": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "type",
+                        "nullable"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "predicates": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "column": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "literal": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "type": {
+                                  "type": "string"
+                                },
+                                "value": true
+                              },
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "type": [
+                                "null",
+                                "object"
+                              ]
+                            },
+                            "parameter": {
+                              "type": [
+                                "null",
+                                "integer"
+                              ]
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "column",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "projection": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "table": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "table",
+                  "columns",
+                  "parameters"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
+              "source_path": {
+                "type": "string"
+              },
+              "sql": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "sql",
+              "source_path",
+              "parameters"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "tables": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "columns": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "auto_increment": {
+                      "type": "boolean"
+                    },
+                    "default": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "value": true
+                      },
+                      "required": [
+                        "type",
+                        "value"
+                      ],
+                      "type": [
+                        "null",
+                        "object"
+                      ]
+                    },
+                    "max_length": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "nullable"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "foreign_keys": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "columns": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "references": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "table": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "columns",
+                    "table",
+                    "references"
+                  ],
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "primary_key": {
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "unique": {
+                "items": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "null",
+                    "array"
+                  ]
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "columns",
+              "primary_key"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "transaction": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "database",
+        "mode",
+        "initial",
+        "statements"
+      ],
+      "type": "object"
+    },
+    "evidence": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
+    "preview": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "connection": {
+            "type": "string"
+          },
+          "control": {
+            "type": "string"
+          },
+          "params": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "value": true
+              },
+              "required": [
+                "type",
+                "value"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "statement_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "connection"
+        ],
+        "type": "object"
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
+    "qa_contract": {
+      "additionalProperties": false,
+      "properties": {
+        "ambiguities": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "coverage": {
+          "type": "string"
+        },
+        "data_policy": {
+          "type": "string"
+        },
+        "fixed": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "goal": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "initial_state": {
+          "type": "string"
+        },
+        "natural_language": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "start_page": {
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "expected": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "action",
+              "expected"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "write_rules": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "goal",
+        "natural_language",
+        "start_page",
+        "role",
+        "initial_state",
+        "data_policy",
+        "write_rules",
+        "coverage",
+        "steps",
+        "fixed"
+      ],
+      "type": "object"
+    },
+    "replay": {
+      "additionalProperties": false,
+      "properties": {
+        "clock": {
+          "type": "string"
+        },
+        "requires_generation": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seed",
+        "clock",
+        "requires_generation"
+      ],
+      "type": "object"
+    },
+    "step_bindings": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "api": {
+            "type": "string"
+          },
+          "source_path": {
+            "type": "string"
+          },
+          "statements": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "step_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "step_id",
+          "api",
+          "source_path",
+          "statements"
+        ],
+        "type": "object"
+      },
+      "type": [
+        "null",
+        "array"
+      ]
+    },
+    "verification": {
+      "additionalProperties": false,
+      "properties": {
+        "expect_calls": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "max": {
+                "type": "integer"
+              },
+              "min": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "min",
+              "max"
+            ],
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "final_state": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "type": "integer"
+              },
+              "fields": {
+                "additionalProperties": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "value": true
+                  },
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              "table": {
+                "type": "string"
+              },
+              "where": {
+                "additionalProperties": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "value": true
+                  },
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "table",
+              "where",
+              "count"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        }
+      },
+      "type": "object"
+    }
+  },
+  "required": [
+    "qa_contract",
+    "evidence",
+    "step_bindings",
+    "api_expectations",
+    "data_bindings",
+    "database_scenario",
+    "verification",
+    "replay"
+  ],
+  "type": "object"
+}
