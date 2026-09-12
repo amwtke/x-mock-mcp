@@ -10,4 +10,4 @@
 - 所有运行固定插件、契约、场景和输入证据版本。
 - 未支持行为明确失败，不用空结果或自动成功掩盖缺陷。
 - 用户选择在当前会话逐项实现和验证，不启用子代理。
-- P0 已合并 master。当前按 docs/superpowers/plans/2026-09-12-p1-mybatis-implementation.md 执行，实际进度见 docs/implementation-progress.md。
+- P0/P1.1 已合并 master。当前按 docs/superpowers/plans/2026-09-12-p1-mybatis-plus-implementation.md 执行，实际进度见 docs/implementation-progress.md。
