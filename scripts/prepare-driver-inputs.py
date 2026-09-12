@@ -19,7 +19,7 @@ for mode in ('driver','transaction'):
    sql=re.search(r'String '+name+r'="([^"]+)"',(root/code).read_text()).group(1)
    domains=[[2001,2002],[1001]] if name=='READ' else ([[2001,2002],[1001],[1]] if name=='INSERT' else [[1,2],[2001],[1001]])
    statements.append({'id':name.lower(),'sql':sql,'source_path':code,'parameters':[{'name':'p'+str(i),'type':'BIGINT','nullable':False,'allowed':[value(n) for n in ns]} for i,ns in enumerate(domains)]})
-  db={'database':'app','mode':'stateful','initial':{'products':[{'id':value(1001),'name':{'type':'VARCHAR','value':'测试键盘'},'price_cents':value(9900)}],'cart_items':[]},'statements':statements,'next_ids':{'cart_items':'5001'}}
+  db={'database':'app','mode':'stateful','initial':{'products':[{'id':value(1001),'name':{'type':'VARCHAR','value':'测试键盘'},'price_cents':value(9900),'stock':value(10),'status':{'type':'VARCHAR','value':'ON_SALE'}}],'cart_items':[]},'statements':statements,'next_ids':{'cart_items':'5001'}}
  body={'qa_contract':qa,'evidence':sources,'step_bindings':[{'step_id':'S1','api':'JDBC contract','source_path':code,'statements':[s['id'] for s in statements]}],'api_expectations':[],'data_bindings':[],'database_scenario':db,'verification':{},'replay':{'seed':42,'clock':'2026-09-12T00:00:00Z','requires_generation':False}}
  if mode=='transaction':body['preview']=[{'statement_id':'insert','params':[value(2001),value(1001),value(1)],'connection':'preview'}]
  write(mode+'-input.json',{'qa':qa,'sources':sources});write(mode+'-candidate.json',body)

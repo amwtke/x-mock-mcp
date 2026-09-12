@@ -1,0 +1,128 @@
+package integration
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+	"xmock.local/x-mock-mcp/internal/app"
+	"xmock.local/x-mock-mcp/internal/binding"
+	jobrun "xmock.local/x-mock-mcp/internal/run"
+	"xmock.local/x-mock-mcp/internal/scenario"
+	"xmock.local/x-mock-mcp/pluginapi"
+)
+
+func TestShoppingDefectsKeepQAExpectations(t *testing.T) {
+	type packaged struct {
+		path, sha string
+		ref       pluginapi.Reference
+	}
+	packages := []packaged{}
+	for _, source := range []string{"./plugins/left/mysql-wire", "./plugins/right/mysql-mock"} {
+		p, d, r := packagePlugin(t, source, "")
+		packages = append(packages, packaged{p, d, r})
+	}
+	for _, defect := range []string{"missing-insert", "wrong-increment", "missing-user-filter", "forced-rollback"} {
+		t.Run(defect, func(t *testing.T) {
+			root := copyExamples(t)
+			source := "examples/springboot-shop/src/main/java/local/xmock/CartService.java"
+			if defect == "missing-user-filter" {
+				source = "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java"
+			}
+			path := filepath.Join(root, source)
+			raw, _ := os.ReadFile(path)
+			code := string(raw)
+			switch defect {
+			case "missing-insert":
+				code = strings.Replace(code, "id=repository.insert(user,productId,quantity);", "id=5001L;", 1)
+			case "wrong-increment":
+				code = strings.Replace(code, "repository.increment(id,user,quantity);", "repository.increment(id,user,quantity+1);", 1)
+			case "missing-user-filter":
+				code = strings.Replace(code, "FROM cart_items WHERE user_id = ? AND product_id = ?", "FROM cart_items WHERE product_id = ?", 1)
+			case "forced-rollback":
+				code = strings.Replace(code, "return new Added(after.id()", "org.springframework.transaction.interceptor.TransactionAspectSupport.currentTransactionStatus().setRollbackOnly(); return new Added(after.id()", 1)
+			}
+			if code == string(raw) {
+				t.Fatal("mutation did not change code")
+			}
+			os.WriteFile(path, []byte(code), 0600)
+			var input, body map[string]any
+			inputRaw, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/shop-input.json"))
+			candidateRaw, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/shop-candidate.json"))
+			json.Unmarshal(inputRaw, &input)
+			json.Unmarshal(candidateRaw, &body)
+			// Refresh actual evidence, preserving the complete QA and expected state.
+			sum := sha256.Sum256([]byte(code))
+			for _, value := range input["sources"].([]any) {
+				entry := value.(map[string]any)
+				if entry["path"] == source {
+					entry["sha256"] = hex.EncodeToString(sum[:])
+				}
+			}
+			body["evidence"] = input["sources"]
+			inputRaw, _ = json.Marshal(input)
+			candidateRaw, _ = json.Marshal(body)
+			config := app.Config{Jobs: []jobrun.JobSpec{{Name: "negative", Argv: []string{"mvn", "-B", "-ntp", "-o", "-f", "examples/springboot-shop/pom.xml", "-Dtest=ShopFlowTest", "test"}, WorkingDirectory: ".", TimeoutMS: 30000, Env: map[string]string{"JAVA_HOME": javaHome(t), "X_MOCK_MYSQL_URL": "jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=10000&connectionCollation=utf8mb4_bin"}}}}
+			service, err := app.Open(root, config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer service.Close(context.Background())
+			for _, p := range packages {
+				if _, err = service.Catalog.Install(context.Background(), p.path, p.sha); err != nil {
+					t.Fatal(err)
+				}
+				service.Catalog.Enable(p.ref)
+			}
+			report, err := service.Prepare(context.Background(), packages[1].ref, inputRaw, candidateRaw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if defect == "missing-user-filter" {
+				if report.Ready {
+					t.Fatal("undeclared user-filter change accepted")
+				}
+				for _, issue := range report.Diagnostics {
+					if strings.Contains(issue.Message, "STALE_EVIDENCE") {
+						t.Fatal("only stale evidence caught mutation")
+					}
+				}
+				return
+			}
+			if !report.Ready {
+				t.Fatalf("grounded candidate unexpectedly failed prepare: %+v", report)
+			}
+			doc, err := service.Scenarios.Put(context.Background(), scenario.Document{ID: "negative", PluginID: "mysql-mock", PluginVersion: "0.1.0", ContractID: "mysql.operation", ContractVersion: 1, Input: inputRaw, Body: report.CompiledBody}, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			env, err := service.CreateEnvironment(context.Background(), app.EnvironmentRequest{ScenarioID: doc.ID, ScenarioVersion: doc.Version, DataStrategy: "StrictReplay", TimeoutMS: 10000, Bindings: []app.BindingRequest{{ResourceID: "app", Left: packages[0].ref, Right: packages[1].ref, Contract: pluginapi.Contract{ID: "mysql.operation", Version: 1}, LeftConfig: json.RawMessage(`{"host":"127.0.0.1","port":0,"username":"mock","password":"mock-local"}`), RightConfig: json.RawMessage(`{"mode":"StrictReplay"}`)}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			run, err := service.StartRun(env.ID, "negative")
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
+			err = service.Runs.Wait(ctx, run.ID)
+			cancel()
+			status, _ := service.Runs.Status(run.ID)
+			log, _ := os.ReadFile(status.LogPath)
+			if err != nil || status.State != "failed" {
+				t.Fatalf("defect passed %s %+v %v\n%s", defect, status, err, log)
+			}
+			if !strings.Contains(string(log), "AssertionFailedError") {
+				t.Fatalf("did not reach business assertions\n%s", log)
+			}
+			archive := filepath.Join("../artifacts/p0", defect+"-"+binding.ID()+".log")
+			os.WriteFile(archive, log, 0600)
+			t.Logf("%s rejected by real HTTP/QA assertions; run=%s", defect, run.ID)
+		})
+	}
+}

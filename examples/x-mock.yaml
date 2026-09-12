@@ -1,0 +1,14 @@
+jobs:
+  - name: shop-http
+    argv: [mvn, -B, -ntp, -o, -f, examples/springboot-shop/pom.xml, -Dtest=ShopFlowTest, test]
+    working_directory: .
+    timeout_ms: 240000
+    env:
+      X_MOCK_MYSQL_URL: 'jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=180000&connectionCollation=utf8mb4_bin'
+  - name: shopping-browser
+    argv: [mvn, -B, -ntp, -o, -f, examples/springboot-shop/pom.xml, -Dtest=ShoppingBrowserTest, test]
+    working_directory: .
+    timeout_ms: 240000
+    env:
+      X_MOCK_MYSQL_URL: 'jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=180000&connectionCollation=utf8mb4_bin'
+      PLAYWRIGHT_BROWSERS_PATH: '${project_root}/.tools/playwright-browsers'

@@ -1,0 +1,189 @@
+{
+  "qa": {
+    "id": "shopping",
+    "goal": "浏览商品并重复加入购物车，验证用户隔离",
+    "natural_language": "# MySQL 场景资料：QA 填写模板\n\n本模板随 `mysql-mock` 右端策略提供。可以直接写自然语言，无需填写 SQL 或数据库报文。字段含义由 `mysql-mock` 提供的 QA schema 与 guide 定义。该模板对应已实现的 `mock_scenario_prepare` 输入流程。\n\n## 可复制的填写提纲\n\n1. 用例名称、要验证的业务目标。\n2. 起始页面、用户角色、是否登录；涉及多用户/多租户时说明身份关系。\n3. 初始条件：需要哪些商品/订单、是否上架、库存状态、购物车是否为空。\n4. 按顺序写每步“做什么、输入什么、期望看到什么”。\n5. 哪些值必须固定，哪些可以让 AI 生成；金额单位、币种、数量与边界条件。\n6. 涉及写入时说明后续查询、重复操作、是否扣库存等业务规则。\n7. 本次覆盖的异常分支，以及明确不覆盖的分支。\n8. 是否接受默认重置：每个独立用例新环境，同一用例各步骤共享状态。\n\n业务规则不明确时标为“需澄清”，不要为了填满模板自行猜测。代码路径、DDL 位置和测试命令由接入方补充，Agent 负责分析实现细节。\n\n## 已填写示例：浏览商品并加入购物车\n\n**目标：** 普通用户能从首页找到商品，查看详情，并将同一商品累计加入自己的购物车。\n\n**角色与起点：** 从首页开始，用户 U1 已登录。另有用户 U2，用于验证购物车隔离。登录方式使用样例工程提供的测试身份配置，本用例不验证真实登录服务。\n\n**初始条件：** 有一件商品 P1 已上架，名为“测试键盘”，价格 99 元人民币，库存 10。U1 和 U2 的购物车都为空。商品 ID、用户 ID 可由 AI 分配，但所有步骤必须保持一致。\n\n| 步骤 | 操作 | 必须看到的结果 |\n| --- | --- | --- |\n| S1 | 打开首页 | 显示测试键盘，价格 99 元 |\n| S2 | 点击测试键盘 | 详情展示同一名称、同一价格、库存 10，可以加入购物车 |\n| S3 | 数量选择 1，点击加入购物车 | 提示加入成功；返回的购物车记录有稳定标识 |\n| S4 | 打开购物车 | 只有一条测试键盘，数量 1，合计 99 元 |\n| S5 | 返回商品详情，再加入 1 件，然后查看购物车 | 仍是一条商品记录，记录标识相同，数量 2，合计 198 元 |\n| S6 | 使用 U2 打开购物车 | 购物车为空，不出现 U1 加入的商品 |\n\n**固定业务规则：** 重复加入累计数量，不新建第二条同商品记录。加入购物车不扣库存；本用例结束商品库存仍为 10。金额显示两位小数或等价本地货币格式均可，数值必须准确。\n\n**允许生成：** 内部数字 ID 和不影响本用例的商品附加描述。不得修改商品名称、单价、数量、用户归属、库存和上述预期来配合当前代码输出。\n\n**覆盖范围：** 包含重复加入、再次查询、多用户隔离。下架商品、库存不足、数量非法、登录失败另立用例；事务回滚与并发冲突另由插件/驱动验收覆盖。\n\n**重置：** 每次完整运行从空购物车开始；S1–S6 共用一次运行的状态。\n\n## 接入方与 Agent 补充的技术资料\n\n下表由开发者/接入方提供引用，Agent 据此分析，不要求 QA 手写。\n\n| 资料 | 必须确定的内容 |\n| --- | --- |\n| 仓库与版本 | 项目目录、commit 或工作区文件摘要；前端和后端分别位于哪里 |\n| 表结构 | 最终 DDL，或能离线还原最终结构的迁移文件；业务枚举与金额单位 |\n| 应用链路 | 前端入口、API、Controller/Service、Repository/Mapper、DTO、事务注解和配置 |\n| 测试配置 | Spring profile、JDK/JDBC 版本、测试身份来源、MySQL 连接配置位置 |\n| 启动与验收 | 具名后台任务及参数、浏览器测试入口、预期启动时限 |\n| 其他依赖 | 此流程是否访问 Redis、Kafka 或外部登录服务；相应插件或明确的测试配置 |\n\nAgent 输出应包含“步骤 → API → 代码证据 → SQL → 依赖数据/状态 → 断言”的对照表、资料缺口、能力缺口和候选场景包。仅凭这个业务示例不能生成声称适配真实工程的最终 SQL；先读取该工程的代码与 DDL。\n",
+    "start_page": "/",
+    "role": "U1=2001 已登录；U2=2002 已登录",
+    "initial_state": "P1=1001 已上架，测试键盘，99 元，库存10；两个用户购物车为空",
+    "data_policy": "QA 名称、价格、库存和预期固定；使用约定的内部 ID",
+    "write_rules": "重复加入累计数量并保留同一记录；不扣库存",
+    "coverage": "首页、详情、首次与重复加入、购物车、多用户；异常及并发另测",
+    "steps": [
+      {
+        "id": "S1",
+        "action": "打开首页",
+        "expected": "测试键盘，99 元"
+      },
+      {
+        "id": "S2",
+        "action": "点击测试键盘",
+        "expected": "同商品、同价格、库存 10"
+      },
+      {
+        "id": "S3",
+        "action": "数量 1 加入购物车",
+        "expected": "HTTP 201，稳定记录标识，数量 1"
+      },
+      {
+        "id": "S4",
+        "action": "打开购物车",
+        "expected": "一条记录，数量 1，合计 99 元"
+      },
+      {
+        "id": "S5",
+        "action": "返回详情再加入 1，查看购物车",
+        "expected": "HTTP 200，同一记录，数量 2，合计 198 元"
+      },
+      {
+        "id": "S6",
+        "action": "U2 查看购物车",
+        "expected": "为空，不含 U1 商品"
+      }
+    ],
+    "fixed": {
+      "name": "测试键盘",
+      "price_cents": "9900",
+      "stock": "10",
+      "status": "ON_SALE"
+    },
+    "initial_assertions": [
+      {
+        "table": "cart_items",
+        "where": {},
+        "count": 0
+      }
+    ],
+    "final_assertions": [
+      {
+        "table": "cart_items",
+        "where": {
+          "user_id": {
+            "type": "BIGINT",
+            "value": "2001"
+          }
+        },
+        "count": 1,
+        "fields": {
+          "id": {
+            "type": "BIGINT",
+            "value": "5001"
+          },
+          "product_id": {
+            "type": "BIGINT",
+            "value": "1001"
+          },
+          "quantity": {
+            "type": "BIGINT",
+            "value": "2"
+          }
+        }
+      },
+      {
+        "table": "cart_items",
+        "where": {
+          "user_id": {
+            "type": "BIGINT",
+            "value": "2002"
+          }
+        },
+        "count": 0
+      },
+      {
+        "table": "products",
+        "where": {
+          "id": {
+            "type": "BIGINT",
+            "value": "1001"
+          }
+        },
+        "count": 1,
+        "fields": {
+          "name": {
+            "type": "VARCHAR",
+            "value": "测试键盘"
+          },
+          "price_cents": {
+            "type": "BIGINT",
+            "value": "9900"
+          },
+          "stock": {
+            "type": "BIGINT",
+            "value": "10"
+          },
+          "status": {
+            "type": "VARCHAR",
+            "value": "ON_SALE"
+          }
+        }
+      }
+    ]
+  },
+  "sources": [
+    {
+      "path": "examples/springboot-shop/schema.sql",
+      "kind": "ddl",
+      "sha256": "8ea1b10dd87dfac4aa548bea6f6cc7b100bc675161aefa665f53ed1661fc6c71"
+    },
+    {
+      "path": "examples/scenarios/shop.qa.md",
+      "kind": "qa",
+      "sha256": "45dea2ccd2f3e2888b36f2e807d2833b224d4e0fa7f6ce2980323c960a98f7d8"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/CartController.java",
+      "kind": "code",
+      "sha256": "947a2af1f9f1357597faf2259416333c64b882c69ca428899e641b42eba5c8af"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/CartService.java",
+      "kind": "code",
+      "sha256": "f2dee684a1ab449891d09b214155b4b65637fd8cf779eb70af226d7d109285db"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/ProductController.java",
+      "kind": "code",
+      "sha256": "1465b448e33691a2b220c573c7e1c225d28d9f03f26d4074a91966bf44c6b6b0"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/ShopApplication.java",
+      "kind": "code",
+      "sha256": "21bb4c0aa74688f8ad9435753a5bb86f255a2c9a5b376ed5d5c1d2aea1af0179"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java",
+      "kind": "code",
+      "sha256": "6bc3726e04f88b136be1b59b9aa6f9137caef77cf28303c4eff5996233aeec7f"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/TestIdentity.java",
+      "kind": "code",
+      "sha256": "f919bd926a6c2d6584bcf6e14f46a52185e839a01e411c47513c341159f17b54"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/resources/application-mock.properties",
+      "kind": "code",
+      "sha256": "5eda128c9f6f34b86df265455bf9c03964a0e550d36db40ac90e62510d83ffbe"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/resources/static/index.html",
+      "kind": "code",
+      "sha256": "00cade3deb8781adc880214bc382ad43fba76952c1d444eaa6eb52d7decf92bb"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/resources/static/shop.js",
+      "kind": "code",
+      "sha256": "c075e72683ecaf31d34a8f10c96c93d788bc90d7372efa5afe8b964bd7b3e5b8"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/ShopFlowTest.java",
+      "kind": "test",
+      "sha256": "5989ceae503b0f7a79f1ca3ba5e794907d59863e9f515bf2a5ea0362c7cdb584"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/ShoppingBrowserTest.java",
+      "kind": "test",
+      "sha256": "a4b28bbc55c3ee6fde8e49bca201d506e6d85732fb8bf1b499d4e2d2d66033ad"
+    }
+  ]
+}

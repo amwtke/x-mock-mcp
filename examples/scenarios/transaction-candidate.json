@@ -22,7 +22,7 @@
     {
       "path": "examples/springboot-shop/schema.sql",
       "kind": "ddl",
-      "sha256": "7a4d606e3ef5d995607d1fb403978a41e74bf30372497132135b0f8b57a8158f"
+      "sha256": "8ea1b10dd87dfac4aa548bea6f6cc7b100bc675161aefa665f53ed1661fc6c71"
     },
     {
       "path": "examples/springboot-shop/src/test/java/local/xmock/TransactionContractTest.java",
@@ -62,6 +62,14 @@
           "price_cents": {
             "type": "BIGINT",
             "value": "9900"
+          },
+          "stock": {
+            "type": "BIGINT",
+            "value": "10"
+          },
+          "status": {
+            "type": "VARCHAR",
+            "value": "ON_SALE"
           }
         }
       ],

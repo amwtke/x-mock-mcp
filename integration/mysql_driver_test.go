@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -59,18 +60,34 @@ func mysqlEnvironment(t *testing.T, fixture string) (*binding.Manager, binding.C
 	}}
 	return m, conf
 }
-func runMaven(t *testing.T, klass, url string) {
+func javaHome(t *testing.T) string {
 	t.Helper()
 	javaHome := os.Getenv("X_MOCK_JAVA_HOME")
 	if javaHome == "" {
-		javaHome = "/opt/homebrew/Cellar/openjdk@21/21.0.12/libexec/openjdk.jdk/Contents/Home"
+		javaHome = os.Getenv("JAVA_HOME")
+	}
+	if javaHome == "" && runtime.GOOS == "darwin" {
+		out, _ := exec.Command("/usr/libexec/java_home", "-v", "21").Output()
+		javaHome = strings.TrimSpace(string(out))
 	}
 	if _, err := os.Stat(filepath.Join(javaHome, "bin/java")); err != nil {
 		t.Fatal("set X_MOCK_JAVA_HOME to JDK 21", err)
 	}
+	return javaHome
+}
+func browserHome() string {
+	if path := os.Getenv("PLAYWRIGHT_BROWSERS_PATH"); path != "" {
+		return path
+	}
+	path, _ := filepath.Abs("../.tools/playwright-browsers")
+	return path
+}
+func runMaven(t *testing.T, klass, url string) {
+	t.Helper()
+	javaHome := javaHome(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "mvn", "-B", "-ntp", "-f", "examples/springboot-shop/pom.xml", "-Dtest="+klass, "test")
+	cmd := exec.CommandContext(ctx, "mvn", "-B", "-ntp", "-o", "-f", "examples/springboot-shop/pom.xml", "-Dtest="+klass, "test")
 	cmd.Dir = ".."
 	cmd.Env = append(os.Environ(), "JAVA_HOME="+javaHome, "X_MOCK_MYSQL_URL="+url)
 	out, err := cmd.CombinedOutput()
