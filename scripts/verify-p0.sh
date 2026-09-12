@@ -24,7 +24,7 @@ run_check go-version "$GO_BIN" version
 run_check java-version "$JAVA_HOME/bin/java" -version
 run_check maven-version mvn --version
 run_check java-dependencies mvn -B -ntp -o -f examples/springboot-shop/pom.xml dependency:tree
-run_check core-race "$GO_BIN" test -race ./pluginapi/... ./contracts/... ./internal/... ./plugins/... -count=1
+run_check core-race "$GO_BIN" test -race ./cmd/... ./pluginapi/... ./contracts/... ./internal/... ./plugins/... -count=1
 run_check integration "$GO_BIN" test ./integration -count=1 -v -timeout=10m
 run_check vet "$GO_BIN" vet ./...
 run_check build bash scripts/build.sh
