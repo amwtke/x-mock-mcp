@@ -19,7 +19,7 @@ import (
 
 type config struct {
 	Host     string `json:"host"`
-	Port     int    `json:"port"`
+	Port     int    `json:"port,omitempty"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
@@ -34,7 +34,7 @@ func (*plugin) Describe(context.Context) (pluginapi.Descriptor, error) {
 	return pluginapi.Descriptor{Ref: pluginapi.Reference{ID: "mysql-wire", Version: "0.1.0", Role: pluginapi.Left}, APIMajor: 1, Contracts: []pluginapi.Contract{{ID: "mysql.operation", Version: 1, Capabilities: []string{"query", "prepare", "bigint", "varchar", "writes", "transactions"}}}, ConfigSchema: mysqlv1.SchemaFor[config](), Features: []string{}}, nil
 }
 func (*plugin) ValidateConfig(_ context.Context, raw json.RawMessage) error {
-	var c config
+	c := config{Port: 3306}
 	if err := pluginapi.Decode(raw, &c); err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (p *plugin) Start(ctx context.Context, spec pluginapi.InstanceSpec, dispatc
 	if err := p.ValidateConfig(ctx, spec.Config); err != nil {
 		return pluginapi.Ready{}, err
 	}
-	var c config
+	c := config{Port: 3306}
 	pluginapi.Decode(spec.Config, &c)
 	if c.Host == "" {
 		c.Host = "127.0.0.1"

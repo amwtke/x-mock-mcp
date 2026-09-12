@@ -728,6 +728,63 @@
         "data_policy": {
           "type": "string"
         },
+        "final_assertions": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "type": "integer"
+              },
+              "fields": {
+                "additionalProperties": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "value": true
+                  },
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              "table": {
+                "type": "string"
+              },
+              "where": {
+                "additionalProperties": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "value": true
+                  },
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "table",
+              "where",
+              "count"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
         "fixed": {
           "additionalProperties": {
             "type": "string"
@@ -739,6 +796,63 @@
         },
         "id": {
           "type": "string"
+        },
+        "initial_assertions": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "count": {
+                "type": "integer"
+              },
+              "fields": {
+                "additionalProperties": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "value": true
+                  },
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              "table": {
+                "type": "string"
+              },
+              "where": {
+                "additionalProperties": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "value": true
+                  },
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "type": "object"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "table",
+              "where",
+              "count"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
         },
         "initial_state": {
           "type": "string"

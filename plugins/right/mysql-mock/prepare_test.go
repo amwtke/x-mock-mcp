@@ -106,3 +106,49 @@ func TestCompileRetainsSQLPredicates(t *testing.T) {
 		t.Fatal("unbounded update accepted")
 	}
 }
+
+func TestPreparePreservesQAInitialAndFinalStateAssertions(t *testing.T) {
+	spec, in, body := preparationFixture(t)
+	in.QA.InitialAssertions = []StateAssertion{{Table: "cart_items", Where: Entity{}, Count: 0}}
+	in.QA.FinalAssertions = []StateAssertion{{Table: "cart_items", Where: Entity{}, Count: 0}}
+	body.QAContract = in.QA
+	body.Verification.FinalState = in.QA.FinalAssertions
+	body.DatabaseScenario.Initial["cart_items"] = []Entity{{"id": mysqlv1.Int(5001), "user_id": mysqlv1.Int(2001), "product_id": mysqlv1.Int(1001), "quantity": mysqlv1.Int(1)}}
+	spec.Input = mysqlv1.Encode(in)
+	spec.Candidate = mysqlv1.Encode(body)
+	report, err := (&plugin{}).Prepare(context.Background(), spec)
+	if err != nil || report.Ready {
+		t.Fatal("preloaded final cart accepted", report, err)
+	}
+	body.DatabaseScenario.Initial["cart_items"] = []Entity{}
+	body.Verification.FinalState = nil
+	spec.Candidate = mysqlv1.Encode(body)
+	report, err = (&plugin{}).Prepare(context.Background(), spec)
+	if err != nil || report.Ready {
+		t.Fatal("QA final assertion erased", report, err)
+	}
+}
+
+func TestPrepareCanonicalBundleCanBeSavedWithEmptyOptionalQAFields(t *testing.T) {
+	spec, in, body := preparationFixture(t)
+	in.QA.Ambiguities = []string{}
+	body.QAContract = in.QA
+	spec.Input = mysqlv1.Encode(in)
+	spec.Candidate = mysqlv1.Encode(body)
+	// A client may explicitly send an empty optional array even though the
+	// canonical producer omits it. It has the same meaning when re-prepared.
+	var input map[string]any
+	json.Unmarshal(spec.Input, &input)
+	input["qa"].(map[string]any)["ambiguities"] = []any{}
+	spec.Input = mysqlv1.Encode(input)
+	p := &plugin{}
+	report, err := p.Prepare(context.Background(), spec)
+	if err != nil || !report.Ready {
+		t.Fatal(report, err)
+	}
+	spec.Candidate = report.CompiledBody
+	report, err = p.Prepare(context.Background(), spec)
+	if err != nil || !report.Ready {
+		t.Fatal("canonical bundle cannot be saved", report, err)
+	}
+}

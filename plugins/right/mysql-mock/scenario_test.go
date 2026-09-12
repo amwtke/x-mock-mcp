@@ -114,3 +114,14 @@ func TestScenarioRejectsFillAfterConnectionCloses(t *testing.T) {
 		t.Fatal("closed connection accepted late fill")
 	}
 }
+
+func TestVerificationRemembersRejectedDependencyCalls(t *testing.T) {
+	p := runtimeFixture(t, false)
+	if _, err := p.Execute(context.Background(), request("query", "SELECT id FROM missing")); err != nil {
+		t.Fatal(err)
+	}
+	report, err := p.Verify(context.Background())
+	if err != nil || report.Passed {
+		t.Fatal("unsupported SQL disappeared from verification", report, err)
+	}
+}

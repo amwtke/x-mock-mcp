@@ -55,7 +55,12 @@ func (p *plugin) Verify(context.Context) (pluginapi.Verification, error) {
 	if p.store == nil {
 		return pluginapi.Verification{}, pluginapi.Fail("STATE_CONFLICT", "right not started")
 	}
-	return verifyState(p.store, p.bundle.Verification, p.counts), nil
+	report := verifyState(p.store, p.bundle.Verification, p.counts)
+	if len(p.violations) > 0 {
+		report.Passed = false
+		report.Issues = append(report.Issues, p.violations...)
+	}
+	return report, nil
 }
 func preview(ctx context.Context, body Bundle) error {
 	db := body.DatabaseScenario

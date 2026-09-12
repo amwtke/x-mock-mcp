@@ -171,9 +171,22 @@ func rowMatches(row Entity, predicates []Predicate, params []mysqlv1.Value) (boo
 	}
 	return true, nil
 }
-func (s *state) execute(ctx context.Context, id string, p *Plan, params []mysqlv1.Value) (json.RawMessage, error) {
+func (s *state) execute(ctx context.Context, id string, p *Plan, params []mysqlv1.Value, rule ...string) (raw json.RawMessage, executionErr error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	defer func() {
+		if executionErr == nil {
+			statement := ""
+			if len(rule) > 0 {
+				statement = rule[0]
+			}
+			phase := "autocommit"
+			if c := s.sessions[id]; c != nil && c.active {
+				phase = "transaction"
+			}
+			raw = executionEvidence(raw, mysqlv1.Execution{StatementID: statement, StateVersion: s.version, Phase: phase, Source: "stateful"})
+		}
+	}()
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

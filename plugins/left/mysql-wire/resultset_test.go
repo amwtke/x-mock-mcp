@@ -40,3 +40,17 @@ func TestResultsetEncodingPreservesTypesAndNulls(t *testing.T) {
 		}
 	}
 }
+
+func TestPreparedTypedBytesKeepDeclaredTextType(t *testing.T) {
+	v, err := parameter(mysqlv1.Column{Name: "status", Type: "VARCHAR"}, mysql.TypedBytes{Type: mysql.MYSQL_TYPE_VAR_STRING, Bytes: []byte("ON_SALE")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := v.String()
+	if got != "ON_SALE" {
+		t.Fatal(got)
+	}
+	if _, err = parameter(mysqlv1.Column{Name: "status", Type: "VARCHAR"}, mysql.TypedBytes{Type: mysql.MYSQL_TYPE_NEWDECIMAL, Bytes: []byte("99.00")}); err == nil {
+		t.Fatal("decimal silently became VARCHAR")
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"xmock.local/x-mock-mcp/pluginapi/host"
 )
 
@@ -30,7 +31,7 @@ func main() {
 				panic(err)
 			}
 		}
-		if err = os.WriteFile(filepath.Join(dir, "qa-guide.md"), []byte(qaGuide+"\n"), 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(dir, "qa-guide.md"), []byte(strings.TrimRight(qaGuide, "\n")+"\n"), 0644); err != nil {
 			panic(err)
 		}
 		return

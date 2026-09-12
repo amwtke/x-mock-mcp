@@ -14,6 +14,7 @@ type InstanceSpec struct {
 	Config          json.RawMessage `json:"config"`
 	Scenario        json.RawMessage `json:"scenario"`
 	ScenarioVersion int64           `json:"scenario_version"`
+	DataStrategy    string          `json:"data_strategy,omitempty"`
 }
 
 type Request struct {
@@ -27,6 +28,7 @@ type Request struct {
 	ContractVersion int             `json:"contract_version"`
 	ScenarioVersion int64           `json:"scenario_version"`
 	DeadlineUnixMS  int64           `json:"deadline_unix_ms"`
+	StartedUnixMS   int64           `json:"started_unix_ms,omitempty"`
 	Operation       string          `json:"operation"`
 	Payload         json.RawMessage `json:"payload"`
 }

@@ -194,3 +194,28 @@ func TestTransactionDisconnectDiscardsWorkingSet(t *testing.T) {
 		t.Fatal("disconnected transaction leaked")
 	}
 }
+
+func TestExecutionEvidenceReportsAppliedVersionAndTransactionPhase(t *testing.T) {
+	s, tables := stateFixture(t)
+	ctx := context.Background()
+	p := plan(t, tables, "INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)", 3)
+	raw, err := s.execute(ctx, "a", p, []mysqlv1.Value{mysqlv1.Int(2001), mysqlv1.Int(1001), mysqlv1.Int(1)}, "insert-cart")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result mysqlv1.OK
+	if err = json.Unmarshal(raw, &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Execution == nil || result.Execution.StatementID != "insert-cart" || result.Execution.StateVersion != 1 || result.Execution.Phase != "autocommit" {
+		t.Fatal(string(raw))
+	}
+	raw, _, err = s.control(ctx, "a", "BEGIN")
+	if err != nil {
+		t.Fatal(err)
+	}
+	json.Unmarshal(raw, &result)
+	if result.Execution == nil || result.Execution.Phase != "BEGIN" {
+		t.Fatal(string(raw))
+	}
+}

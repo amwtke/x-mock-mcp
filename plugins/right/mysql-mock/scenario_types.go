@@ -16,18 +16,20 @@ type QAStep struct {
 	Expected string `json:"expected"`
 }
 type QA struct {
-	ID              string            `json:"id"`
-	Goal            string            `json:"goal"`
-	NaturalLanguage string            `json:"natural_language"`
-	StartPage       string            `json:"start_page"`
-	Role            string            `json:"role"`
-	InitialState    string            `json:"initial_state"`
-	DataPolicy      string            `json:"data_policy"`
-	WriteRules      string            `json:"write_rules"`
-	Coverage        string            `json:"coverage"`
-	Steps           []QAStep          `json:"steps"`
-	Fixed           map[string]string `json:"fixed"`
-	Ambiguities     []string          `json:"ambiguities,omitempty"`
+	ID                string            `json:"id"`
+	Goal              string            `json:"goal"`
+	NaturalLanguage   string            `json:"natural_language"`
+	StartPage         string            `json:"start_page"`
+	Role              string            `json:"role"`
+	InitialState      string            `json:"initial_state"`
+	DataPolicy        string            `json:"data_policy"`
+	WriteRules        string            `json:"write_rules"`
+	Coverage          string            `json:"coverage"`
+	Steps             []QAStep          `json:"steps"`
+	Fixed             map[string]string `json:"fixed"`
+	Ambiguities       []string          `json:"ambiguities,omitempty"`
+	InitialAssertions []StateAssertion  `json:"initial_assertions,omitempty"`
+	FinalAssertions   []StateAssertion  `json:"final_assertions,omitempty"`
 }
 type Input struct {
 	QA      QA       `json:"qa"`

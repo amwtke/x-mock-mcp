@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -125,7 +126,9 @@ func (p *plugin) Prepare(ctx context.Context, spec pluginapi.PreparationSpec) (p
 		problem("candidate", err.Error())
 		return report, nil
 	}
-	if !reflect.DeepEqual(body.QAContract, input.QA) || !reflect.DeepEqual(body.Evidence, input.Sources) {
+	// Optional empty fields are omitted when the compiled bundle is encoded.
+	// Compare their canonical JSON so saving that bundle preserves QA semantics.
+	if !bytes.Equal(mysqlv1.Encode(body.QAContract), mysqlv1.Encode(input.QA)) || !reflect.DeepEqual(body.Evidence, input.Sources) {
 		problem("qa_contract/evidence", "候选必须保留输入 QA 和证据")
 	}
 	db := &body.DatabaseScenario
@@ -141,6 +144,17 @@ func (p *plugin) Prepare(ctx context.Context, spec pluginapi.PreparationSpec) (p
 	}
 	if err = validateInitial(tables, db.Initial); err != nil {
 		problem("database_scenario.initial", err.Error())
+	}
+	if len(input.QA.FinalAssertions) > 0 && !reflect.DeepEqual(input.QA.FinalAssertions, body.Verification.FinalState) {
+		problem("verification.final_state", "最终断言必须保留 QA 归一化预期")
+	}
+	if len(input.QA.InitialAssertions) > 0 {
+		initial, initialErr := newState(*db)
+		if initialErr != nil {
+			problem("database_scenario.initial", initialErr.Error())
+		} else if report := verifyState(initial, VerificationSpec{FinalState: input.QA.InitialAssertions}, nil); !report.Passed {
+			problem("database_scenario.initial", fmt.Sprint(report.Issues))
+		}
 	}
 	statements := map[string]bool{}
 	writtenTables := map[string]bool{}

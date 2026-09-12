@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"xmock.local/x-mock-mcp/contracts/mysqlv1"
 )
 
 func clearTransaction(c *connection) {
@@ -79,6 +80,6 @@ func (s *state) control(ctx context.Context, id, sql string) (json.RawMessage, b
 	default:
 		return nil, true, dbError(1235, "42000", "transaction operation unsupported")
 	}
-	return okResult(c, 0, 0), true, nil
+	return executionEvidence(okResult(c, 0, 0), mysqlv1.Execution{StateVersion: s.version, Phase: command, Source: "transaction_control"}), true, nil
 }
 func (s *state) closeConnection(id string) { s.mu.Lock(); delete(s.sessions, id); s.mu.Unlock() }

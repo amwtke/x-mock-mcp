@@ -27,10 +27,11 @@ type Metadata struct {
 }
 
 type Rows struct {
-	Kind    string              `json:"kind"`
-	Columns []Column            `json:"columns"`
-	Rows    [][]json.RawMessage `json:"rows"`
-	Status  SessionStatus       `json:"status"`
+	Kind      string              `json:"kind"`
+	Columns   []Column            `json:"columns"`
+	Rows      [][]json.RawMessage `json:"rows"`
+	Status    SessionStatus       `json:"status"`
+	Execution *Execution          `json:"execution,omitempty"`
 }
 
 type SessionStatus struct {
@@ -44,6 +45,15 @@ type OK struct {
 	LastInsertID string        `json:"last_insert_id"`
 	Status       SessionStatus `json:"status"`
 	Warnings     uint16        `json:"warnings"`
+	Execution    *Execution    `json:"execution,omitempty"`
+}
+
+// Execution is plugin-owned trace evidence; it is never emitted on the SQL wire.
+type Execution struct {
+	StatementID  string `json:"statement_id,omitempty"`
+	StateVersion uint64 `json:"state_version"`
+	Phase        string `json:"transaction_phase"`
+	Source       string `json:"source"`
 }
 
 type EntityFill struct {

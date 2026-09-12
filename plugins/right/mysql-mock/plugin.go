@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -30,14 +31,15 @@ type continuation struct {
 	result          json.RawMessage
 }
 type plugin struct {
-	mu      sync.Mutex
-	store   *state
-	bundle  Bundle
-	config  config
-	pending map[string]*continuation
-	slots   map[string]*continuation
-	counts  map[string]int
-	closed  map[string]bool
+	mu         sync.Mutex
+	store      *state
+	bundle     Bundle
+	config     config
+	pending    map[string]*continuation
+	slots      map[string]*continuation
+	counts     map[string]int
+	closed     map[string]bool
+	violations []pluginapi.Failure
 }
 
 func identifier() string {
@@ -51,7 +53,8 @@ func (p *plugin) Describe(context.Context) (pluginapi.Descriptor, error) {
 	return pluginapi.Descriptor{Ref: pluginapi.Reference{ID: "mysql-mock", Version: "0.1.0", Role: pluginapi.Right}, APIMajor: 1, Contracts: []pluginapi.Contract{{ID: "mysql.operation", Version: 1, Capabilities: []string{"query", "prepare", "bigint", "varchar", "writes", "transactions"}}}, ConfigSchema: mysqlv1.SchemaFor[config](), ScenarioSchema: mysqlv1.SchemaFor[Bundle](), Features: []string{"scenario.prepare", "scenario.export", "scenario.verify"}, Preparation: &pluginapi.PreparationContract{InputSchema: mysqlv1.SchemaFor[Input](), CandidateSchema: mysqlv1.SchemaFor[Bundle](), Guide: qaGuide}}, nil
 }
 
-const qaGuide = `QA 提供自然语言目标、起点/身份、初态、有顺序的动作及每步预期、固定值/生成自由度、写入与重复操作规则、覆盖范围；不能替 QA 猜测未确认规则。接入方给源码和最终 DDL 路径/摘要。Coding Agent 保留 QA 原文并归一化，分析 Controller/Service/Repository/DTO，提供源码中的 SQL、参数域、API 预期、初始实体与状态断言。候选通过 prepare 后保存，运行时只补不可变参考实体。左端对接应用；右端对接外部依赖。不启动真实数据库，不调用独立模型 API。`
+//go:embed qa-guide.md
+var qaGuide string
 
 func (p *plugin) ValidateConfig(ctx context.Context, raw json.RawMessage) error {
 	var c config
@@ -69,6 +72,9 @@ func (p *plugin) Start(ctx context.Context, spec pluginapi.InstanceSpec) (plugin
 	}
 	var c config
 	pluginapi.Decode(spec.Config, &c)
+	if spec.DataStrategy != "" && spec.DataStrategy != c.Mode {
+		return pluginapi.Ready{}, pluginapi.Invalid("right mode must match environment data strategy")
+	}
 	var body Bundle
 	if err := pluginapi.Decode(spec.Scenario, &body); err != nil {
 		return pluginapi.Ready{}, err
@@ -98,6 +104,7 @@ func (p *plugin) Start(ctx context.Context, spec pluginapi.InstanceSpec) (plugin
 	p.slots = map[string]*continuation{}
 	p.counts = map[string]int{}
 	p.closed = map[string]bool{}
+	p.violations = nil
 	return pluginapi.Ready{InstanceID: spec.InstanceID}, nil
 }
 func (p *plugin) Stop(context.Context) error {
@@ -127,7 +134,27 @@ func outcome(raw json.RawMessage, err error) (pluginapi.Decision, error) {
 	}
 	return pluginapi.Decision{Kind: "completed", Payload: raw}, nil
 }
-func (p *plugin) Execute(ctx context.Context, q pluginapi.Request) (pluginapi.Decision, error) {
+func (p *plugin) Execute(ctx context.Context, q pluginapi.Request) (decision pluginapi.Decision, resultErr error) {
+	defer func() {
+		var failure *pluginapi.Failure
+		if resultErr != nil {
+			failure = &pluginapi.Failure{Code: pluginapi.Code(resultErr), Message: resultErr.Error()}
+		} else if decision.Kind == "unsupported" {
+			failure = decision.Error
+		} else {
+			var result mysqlv1.Error
+			if json.Unmarshal(decision.Payload, &result) == nil && result.Kind == "error" {
+				failure = &pluginapi.Failure{Code: "DEPENDENCY_ERROR", Message: result.Message}
+			}
+		}
+		if failure != nil {
+			p.mu.Lock()
+			if len(p.violations) < 16 {
+				p.violations = append(p.violations, *failure)
+			}
+			p.mu.Unlock()
+		}
+	}()
 	p.mu.Lock()
 	s := p.store
 	body := p.bundle
@@ -333,7 +360,7 @@ func (p *plugin) Execute(ctx context.Context, q pluginapi.Request) (pluginapi.De
 			return pluginapi.Decision{Kind: "needs_data", Need: &pluginapi.Need{RequestID: q.ID, Continuation: token, StateVersion: 0, DeadlineUnixMS: q.DeadlineUnixMS, Schema: mysqlv1.SchemaFor[mysqlv1.EntityFill](), Context: mysqlv1.Encode(map[string]any{"slot": slot, "table": table, "qa": body.QAContract, "request": q, "statement_id": statement.ID})}}, nil
 		}
 	}
-	return outcome(s.execute(ctx, q.ConnectionID, statement.Plan, params))
+	return outcome(s.execute(ctx, q.ConnectionID, statement.Plan, params, statement.ID))
 }
 func (p *plugin) Complete(ctx context.Context, r pluginapi.Resolution) (raw json.RawMessage, err error) {
 	p.mu.Lock()
@@ -409,5 +436,5 @@ func (p *plugin) Complete(ctx context.Context, r pluginapi.Resolution) (raw json
 		s.committed[table.Name][key] = recordVersion{cloneRow(Entity(row)), s.version}
 	}
 	s.mu.Unlock()
-	return s.execute(ctx, need.request.ConnectionID, need.statement.Plan, need.params)
+	return s.execute(ctx, need.request.ConnectionID, need.statement.Plan, need.params, need.statement.ID)
 }

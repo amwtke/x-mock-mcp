@@ -190,6 +190,11 @@ func parameter(col mysqlv1.Column, arg any) (mysqlv1.Value, error) {
 		value = mysqlv1.Int(n)
 	case "VARCHAR":
 		switch v := arg.(type) {
+		case mysql.TypedBytes:
+			if v.Type != mysql.MYSQL_TYPE_VARCHAR && v.Type != mysql.MYSQL_TYPE_VAR_STRING && v.Type != mysql.MYSQL_TYPE_STRING {
+				return value, fmt.Errorf("unsupported wire type for VARCHAR parameter")
+			}
+			value = mysqlv1.Text(string(v.Bytes))
 		case string:
 			value = mysqlv1.Text(v)
 		case []byte:
