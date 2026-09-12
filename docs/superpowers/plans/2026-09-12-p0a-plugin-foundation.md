@@ -297,9 +297,9 @@ func TestDecisionRejectsConflictingOutcomes(t *testing.T) {
 
 ## Task A3: 安装、启用与卸载
 
-- [ ] 为 catalog 增加 zip 夹具构造 helper `bundle(t, manifest, files) (path, sha256)`，使用 archive/zip 写入 t.TempDir()，Files 摘要由夹具函数计算。测试安装后包存在且未启用；重复安装同摘要幂等；同 ID/版本但不同摘要拒绝。
-- [ ] 执行 `go test ./internal/plugin/catalog -run 'TestInstall|TestUninstall' -count=1`，记录失败原因。
-- [ ] 在 `archive.go` 按以下严格顺序实现 Install：
+- [x] 为 catalog 增加 zip 夹具构造 helper `bundle(t, manifest, files) (path, sha256)`，使用 archive/zip 写入 t.TempDir()，Files 摘要由夹具函数计算。测试安装后包存在且未启用；重复安装同摘要幂等；同 ID/版本但不同摘要拒绝。
+- [x] 执行 `go test ./internal/plugin/catalog -run 'TestInstall|TestUninstall' -count=1`，记录失败原因。
+- [x] 在 `archive.go` 按以下严格顺序实现 Install：
 
 ```text
 Open package -> compare caller's archive SHA-256 -> read manifest
@@ -313,7 +313,7 @@ Open package -> compare caller's archive SHA-256 -> read manifest
 
 manifest.json 不要求在自身 Files 表中。除 manifest.json 外每个文件必须列入 Files；每项必须存在。入口路径必须位于包内且是普通可执行文件。失败清理本次临时目录，保留先前已安装版本。
 
-- [ ] 实现以下 catalog 公共方法，所有元数据修改持有项目级文件锁；Install 完成前不注册记录：
+- [x] 实现以下 catalog 公共方法，所有元数据修改持有项目级文件锁；Install 完成前不注册记录：
 
 ```text
 Open(root string) (*Catalog, error)
@@ -327,8 +327,8 @@ List() []Record
 
 Record 包含 Ref、ArchiveSHA256、Enabled、ActiveInstances。Acquire 只接受已启用版本，增加引用并返回一次性 release；在持锁区内检查活动引用，避免“检查后又启动”的竞态。进程内引用在 daemon 重启时根据实例恢复流程处理，不盲信磁盘上的旧计数。
 
-- [ ] 测试停用/卸载有活动引用时返回 PLUGIN_IN_USE；release 后停用、卸载成功，另一端插件仍然存在。增加 `../escape`、符号链接、损坏摘要、不同平台与并行 Acquire/Uninstall 的负例。
-- [ ] 运行 `go test -race ./internal/plugin/catalog -count=1`。提交：`feat: manage independent plugin package lifecycles`。
+- [x] 测试停用/卸载有活动引用时返回 PLUGIN_IN_USE；release 后停用、卸载成功，另一端插件仍然存在。增加 `../escape`、符号链接、损坏摘要、不同平台与并行 Acquire/Uninstall 的负例。
+- [x] 运行 `go test -race ./internal/plugin/catalog -count=1`。提交：`feat: manage independent plugin package lifecycles`。
 
 ## Task A4: 并发 Plugin IPC
 
