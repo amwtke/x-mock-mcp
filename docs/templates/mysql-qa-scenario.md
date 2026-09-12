@@ -1,6 +1,6 @@
 # MySQL 场景资料：QA 填写模板
 
-本模板随 `mysql-mock` 右端策略提供。可以直接写自然语言，无需填写 SQL 或数据库报文。字段含义见 [MySQL QA 契约](../superpowers/specs/2026-09-12-mysql-qa-scenario-contract.md)。目前是设计附件，尚无表单或编译工具。
+本模板随 `mysql-mock` 右端策略提供。可以直接写自然语言，无需填写 SQL 或数据库报文。字段含义见 [MySQL QA 契约](../superpowers/specs/2026-09-12-mysql-qa-scenario-contract.md)。该模板对应已实现的 `mock_scenario_prepare` 输入流程，见 [使用说明](../../README.md)。
 
 ## 可复制的填写提纲
 

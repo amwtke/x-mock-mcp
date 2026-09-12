@@ -1,0 +1,52 @@
+{
+  "descriptor": {
+    "ref": {
+      "id": "mysql-wire",
+      "version": "0.1.0",
+      "role": "left"
+    },
+    "plugin_api_version": 1,
+    "contracts": [
+      {
+        "id": "mysql.operation",
+        "version": 1,
+        "capabilities": [
+          "query",
+          "prepare",
+          "bigint",
+          "varchar",
+          "writes",
+          "transactions"
+        ]
+      }
+    ],
+    "config_schema": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "host",
+        "username",
+        "password"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "platform": "darwin/arm64",
+  "entrypoint": "bin/plugin",
+  "files": {
+    "bin/plugin": "4aaba943563e570c7651985f45798a157e31af655328c477ab7c83dfadf9224b"
+  }
+}

@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | P0A | [双端插件框架](2026-09-12-p0a-plugin-foundation.md) | 可安装的左右端测试插件，通过真实子进程完成路由、取消、回滚和卸载 |
 | P0B | [MySQL 插件对](2026-09-12-p0b-mysql-plugin-pair.md) | QA 输入契约、代码/DDL 候选编译、共享数据与事务；真实 JDBC/Hikari 的读写、预处理、类型验证 |
-| P0C | [MCP、场景协作与应用验收](2026-09-12-p0c-agent-e2e.md) | 场景准备工具、daemon、CLI、桥接、Agent 补全、Spring Boot 浏览器购物流程与两个宿主的实测 |
+| P0C | [MCP、场景协作与应用验收](2026-09-12-p0c-agent-e2e.md) | 场景准备工具、daemon、CLI、桥接、Agent 补全、Spring Boot 浏览器购物流程与 Codex 原生模型实测、Claude 接入兼容检查 |
 
 禁止把只通过 MCP Inspector、只成功建立 TCP 连接、或只有 SELECT 1 成功当作 P0 完成。
 
@@ -31,7 +31,7 @@
 - 仓库原先为空；已确认设计已提交为 `453cbe9`。
 - `go` 不在 PATH 中，P0A 第一个任务准备项目本地 Go 工具链。
 - `java` 是 Homebrew JDK 21.0.12；Maven 3.9.16 默认使用 JDK 26.0.2。Java 验收命令显式指定 JDK 21，避免运行组合漂移。
-- 本机 Codex CLI 是 0.154.0；未找到 Claude Code 命令。实际宿主验收记录实施时的版本，缺少宿主时保持该项未通过，不用脚本模拟结果代替。
+- 开始时 Codex CLI 为 0.154.0，未找到 Claude Code；后已安装 Claude Code 2.1.269。用户明确免除 Claude 账号和真实模型 E2E，仅保留接入兼容性验收，不把 SDK 脚本结果算作 Claude 模型实测。
 
 锁定以下依赖，实施时提交 go.sum 和 Maven dependency tree。它们是首个验收组合，不是“兼容所有版本”的声明。
 
@@ -86,7 +86,7 @@ docs/compatibility/                实测组合、宿主轨迹与已知范围
 2. 右端先就绪，左端再监听；任一步失败则创建环境整体回滚。不同 binding 的进程与状态隔离。
 3. 请求按不可变 binding 路由；校验插件 API、契约版本与能力交集，不按数据库名称编写核心 switch。
 4. MySQL P0 的 QA 要求归右端插件；Agent 提议数据与映射，插件从 SQL AST/DDL 编译有限执行计划。购物车由应用真实写请求更新；提交、回滚、主键和影响行数反映实际状态。运行时 DDL 与未支持 SQL 明确失败。
-5. 自动验收使用短超时；人工 Agent 探索配置 request_timeout_ms=120000、lease_ms=60000，MCP 单次拉取最多等待 2000ms。剩余时限不足时不接受新的领取或回填。
+5. 自动验收使用短超时；人工 Agent 探索配置环境 timeout_ms=180000（最长 300000），固定租约 15000ms，MCP 单次拉取最多等待 2000ms。剩余时限不足时不接受新的领取或回填。
 6. request_id、lease_token、continuation_token 都使用不可预测标识；结果校验通过后仍需右端 Complete，候选数据不能直通左端。
 7. scenario_version、插件版本、包摘要、schema/contract 版本在创建环境时固定；运行中不切换到新版本。
 8. 回归失败以测试退出码、未匹配请求、协议错误和预期调用数量共同判断。模型不能修改正在执行的测试断言。
@@ -95,10 +95,10 @@ docs/compatibility/                实测组合、宿主轨迹与已知范围
 
 ## 执行顺序与提交边界
 
-- [ ] 执行 P0A 的 A1–A6，每个任务完成其失败验证、实现、成功验证与一次聚焦提交。
-- [ ] 执行 P0B 的 B1–B6，先锁定输入、编译和状态规则，再证明协议及真实驱动行为。
-- [ ] 执行 P0C 的 C1–C6，自动化验证通过后再做真实宿主验收。
-- [ ] 按下面的覆盖表逐项填写证据路径；只有全部必要项目通过才标记 P0 完成。
+- [x] 执行 P0A 的 A1–A6，按任务完成实现与验证；相互依赖的提交合并情况见实施记录。
+- [x] 执行 P0B 的 B1–B6，先锁定输入、编译和状态规则，再证明协议及真实驱动行为。
+- [x] 执行 P0C 的 C1–C6，自动化验证及调整后的宿主验收完成，见 [实施记录](../../implementation-progress.md)。
+- [x] 调整后的必要项目已全部通过；实际版本、测试和证据路径见 [兼容性记录](../../compatibility/p0.md)。
 
 测试失败说明兼容问题，不是放宽规则的理由。例如 server prepare 不通时，修正 metadata 实现，不能在所有测试中禁用 server prepare 后声称已支持。
 
@@ -110,7 +110,7 @@ docs/compatibility/                实测组合、宿主轨迹与已知范围
 | 两端独立安装/启停/卸载 | A3、A6 | catalog 生命周期与真实插件测试 |
 | 跨进程注册、协议协商、路由 | A2、A4、A5、A6 | 两端契约不匹配、并发响应和取消测试 |
 | 端口冲突、启动回滚、崩溃隔离 | A5、A6、C3 | 故障测试及无残留进程/监听器断言 |
-| QA 必填资料、自然语言与代码/DDL 编译 | A2、B2、C1、C4、C6 | 缺口/歧义报告、证据摘要、候选编译及双宿主产物 |
+| QA 必填资料、自然语言与代码/DDL 编译 | A2、B2、C1、C4、C6 | 缺口/歧义报告、证据摘要、候选编译及 Codex 原生产物/Claude 接入检查 |
 | MySQL 驱动、探活、文本查询 | B1、B3、B5、B6 | 固定 JDK/JDBC/Hikari 测试 |
 | server prepare 与类型元数据 | B1、B5、B6 | prepare 元数据、执行结果、NULL/空集/错误测试 |
 | 写后读、生成键、提交/回滚、用户隔离 | B3、B4、B6、C5 | 真实 DML、两连接事务和浏览器购物断言 |
@@ -118,7 +118,7 @@ docs/compatibility/                实测组合、宿主轨迹与已知范围
 | 领取、回填、过期、重复、断连 | C2、B5、C5 | fake clock、竞态与 TCP 断连测试 |
 | 后台运行，不让 Agent 与测试互相等待 | C3、C5 | run_start 立即返回，之后可 resolve |
 | MCP HTTP 和 stdio 共用 daemon | C4、C5 | MCP 旧/新协议及桥接实例计数 |
-| Codex 和 Claude Code 实际协作 | C6 | 各一份实际宿主轨迹与版本记录 |
+| Codex 原生协作与 Claude Code 接入兼容 | C6 | Codex 模型轨迹；Claude HTTP/stdio 真实 CLI 健康检查，模型 E2E 按用户要求豁免 |
 | 插件版本与报告可追溯 | A3、C1、C6 | 包摘要、场景版本与依赖树 |
 
 ## 完成标准
