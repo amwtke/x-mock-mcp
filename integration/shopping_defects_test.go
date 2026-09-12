@@ -18,6 +18,11 @@ import (
 )
 
 func TestShoppingDefectsKeepQAExpectations(t *testing.T) {
+	shoppingDefects(t, "shop", "ShopFlowTest", false)
+}
+
+func shoppingDefects(t *testing.T, fixture, testClass string, mybatis bool) {
+	t.Helper()
 	type packaged struct {
 		path, sha string
 		ref       pluginapi.Reference
@@ -27,12 +32,22 @@ func TestShoppingDefectsKeepQAExpectations(t *testing.T) {
 		p, d, r := packagePlugin(t, source, "")
 		packages = append(packages, packaged{p, d, r})
 	}
-	for _, defect := range []string{"missing-insert", "wrong-increment", "missing-user-filter", "forced-rollback"} {
+	defects := []string{"missing-insert", "wrong-increment", "missing-user-filter", "forced-rollback"}
+	if mybatis {
+		defects = append(defects, "swapped-mapper-arguments")
+	}
+	for _, defect := range defects {
 		t.Run(defect, func(t *testing.T) {
 			root := copyExamples(t)
 			source := "examples/springboot-shop/src/main/java/local/xmock/CartService.java"
 			if defect == "missing-user-filter" {
 				source = "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java"
+				if mybatis {
+					source = "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml"
+				}
+			}
+			if defect == "swapped-mapper-arguments" {
+				source = "examples/springboot-shop/src/main/java/local/xmock/MyBatisShopRepository.java"
 			}
 			path := filepath.Join(root, source)
 			raw, _ := os.ReadFile(path)
@@ -44,6 +59,11 @@ func TestShoppingDefectsKeepQAExpectations(t *testing.T) {
 				code = strings.Replace(code, "repository.increment(id,user,quantity);", "repository.increment(id,user,quantity+1);", 1)
 			case "missing-user-filter":
 				code = strings.Replace(code, "FROM cart_items WHERE user_id = ? AND product_id = ?", "FROM cart_items WHERE product_id = ?", 1)
+				if mybatis {
+					code = strings.Replace(code, "WHERE user_id = #{userId,jdbcType=BIGINT} AND product_id = #{productId,jdbcType=BIGINT}", "WHERE product_id = #{productId,jdbcType=BIGINT}", 1)
+				}
+			case "swapped-mapper-arguments":
+				code = strings.Replace(code, "mapper.item(user, product)", "mapper.item(product, user)", 1)
 			case "forced-rollback":
 				code = strings.Replace(code, "return new Added(after.id()", "org.springframework.transaction.interceptor.TransactionAspectSupport.currentTransactionStatus().setRollbackOnly(); return new Added(after.id()", 1)
 			}
@@ -52,8 +72,8 @@ func TestShoppingDefectsKeepQAExpectations(t *testing.T) {
 			}
 			os.WriteFile(path, []byte(code), 0600)
 			var input, body map[string]any
-			inputRaw, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/shop-input.json"))
-			candidateRaw, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/shop-candidate.json"))
+			inputRaw, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/"+fixture+"-input.json"))
+			candidateRaw, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/"+fixture+"-candidate.json"))
 			json.Unmarshal(inputRaw, &input)
 			json.Unmarshal(candidateRaw, &body)
 			// Refresh actual evidence, preserving the complete QA and expected state.
@@ -67,7 +87,7 @@ func TestShoppingDefectsKeepQAExpectations(t *testing.T) {
 			body["evidence"] = input["sources"]
 			inputRaw, _ = json.Marshal(input)
 			candidateRaw, _ = json.Marshal(body)
-			config := app.Config{Jobs: []jobrun.JobSpec{{Name: "negative", Argv: []string{"mvn", "-B", "-ntp", "-o", "-f", "examples/springboot-shop/pom.xml", "-Dtest=ShopFlowTest", "test"}, WorkingDirectory: ".", TimeoutMS: 30000, Env: map[string]string{"JAVA_HOME": javaHome(t), "X_MOCK_MYSQL_URL": "jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=10000&connectionCollation=utf8mb4_bin"}}}}
+			config := app.Config{Jobs: []jobrun.JobSpec{{Name: "negative", Argv: []string{"mvn", "-B", "-ntp", "-o", "-f", "examples/springboot-shop/pom.xml", "-Dtest=" + testClass, "test"}, WorkingDirectory: ".", TimeoutMS: 30000, Env: map[string]string{"JAVA_HOME": javaHome(t), "X_MOCK_MYSQL_URL": "jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=10000&connectionCollation=utf8mb4_bin"}}}}
 			service, err := app.Open(root, config)
 			if err != nil {
 				t.Fatal(err)
@@ -97,7 +117,7 @@ func TestShoppingDefectsKeepQAExpectations(t *testing.T) {
 			if !report.Ready {
 				t.Fatalf("grounded candidate unexpectedly failed prepare: %+v", report)
 			}
-			doc, err := service.Scenarios.Put(context.Background(), scenario.Document{ID: "negative", PluginID: "mysql-mock", PluginVersion: "0.1.0", ContractID: "mysql.operation", ContractVersion: 1, Input: inputRaw, Body: report.CompiledBody}, 0)
+			doc, err := service.Scenarios.Put(context.Background(), scenario.Document{ID: "negative", PluginID: "mysql-mock", PluginVersion: packages[1].ref.Version, ContractID: "mysql.operation", ContractVersion: 1, Input: inputRaw, Body: report.CompiledBody}, 0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -120,7 +140,14 @@ func TestShoppingDefectsKeepQAExpectations(t *testing.T) {
 			if !strings.Contains(string(log), "AssertionFailedError") {
 				t.Fatalf("did not reach business assertions\n%s", log)
 			}
-			archive := filepath.Join("../artifacts/p0", defect+"-"+binding.ID()+".log")
+			stage := "p0"
+			if mybatis {
+				stage = "p1"
+			}
+			if err := os.MkdirAll(filepath.Join("../artifacts", stage), 0700); err != nil {
+				t.Fatal(err)
+			}
+			archive := filepath.Join("../artifacts", stage, defect+"-"+binding.ID()+".log")
 			os.WriteFile(archive, log, 0600)
 			t.Logf("%s rejected by real HTTP/QA assertions; run=%s", defect, run.ID)
 		})

@@ -136,9 +136,14 @@ func businessTrace(t *testing.T, raw []byte) []byte {
 	return encoded
 }
 func TestAgentFlowAndReplay(t *testing.T) {
+	shoppingAgentFlow(t, "shop", "ShoppingBrowserTest", "p0")
+}
+
+func shoppingAgentFlow(t *testing.T, fixture, testClass, stage string) {
+	t.Helper()
 	root := copyExamples(t)
 	repo, _ := filepath.Abs("..")
-	config := app.Config{Jobs: []jobrun.JobSpec{{Name: "shopping-browser", Argv: []string{"mvn", "-B", "-ntp", "-o", "-f", "examples/springboot-shop/pom.xml", "-Dtest=ShoppingBrowserTest", "test"}, WorkingDirectory: ".", TimeoutMS: 240000, Env: map[string]string{"JAVA_HOME": javaHome(t), "PLAYWRIGHT_BROWSERS_PATH": browserHome(), "X_MOCK_MYSQL_URL": "jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=180000&connectionCollation=utf8mb4_bin"}}}}
+	config := app.Config{Jobs: []jobrun.JobSpec{{Name: "shopping-browser", Argv: []string{"mvn", "-B", "-ntp", "-o", "-f", "examples/springboot-shop/pom.xml", "-Dtest=" + testClass, "test"}, WorkingDirectory: ".", TimeoutMS: 240000, Env: map[string]string{"JAVA_HOME": javaHome(t), "PLAYWRIGHT_BROWSERS_PATH": browserHome(), "X_MOCK_MYSQL_URL": "jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=180000&connectionCollation=utf8mb4_bin"}}}}
 	service, err := app.Open(root, config)
 	if err != nil {
 		t.Fatal(err)
@@ -167,27 +172,27 @@ func TestAgentFlowAndReplay(t *testing.T) {
 	if err != nil || len(list.Tools) != 16 {
 		t.Fatal("plugin changed MCP surface", list, err)
 	}
-	args := map[string]any{"role": "right", "plugin_id": "mysql-mock", "version": "0.1.0", "schema_name": "qa_input"}
+	args := map[string]any{"role": "right", "plugin_id": "mysql-mock", "version": refs[pluginapi.Right].Version, "schema_name": "qa_input"}
 	var capability map[string]any
 	callTool(t, client, "mock_capabilities", args, &capability)
 	if capability["schema"] == nil {
 		t.Fatal("missing QA schema")
 	}
 	delete(args, "schema_name")
-	input, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/shop-input.json"))
+	input, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/"+fixture+"-input.json"))
 	args["input"] = json.RawMessage(input)
 	var report pluginapi.PreparationReport
 	callTool(t, client, "mock_scenario_prepare", args, &report)
 	if report.Ready || len(service.Bindings.List()) != 0 {
 		t.Fatal("prepare opened listener or claimed candidate ready")
 	}
-	candidate, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/shop-explore-candidate.json"))
+	candidate, _ := os.ReadFile(filepath.Join(root, "examples/scenarios/"+fixture+"-explore-candidate.json"))
 	args["candidate"] = json.RawMessage(candidate)
 	callTool(t, client, "mock_scenario_prepare", args, &report)
 	if !report.Ready {
 		t.Fatalf("prepare: %+v", report)
 	}
-	document := scenario.Document{ID: "shop", PluginID: "mysql-mock", PluginVersion: "0.1.0", ContractID: "mysql.operation", ContractVersion: 1, Input: input, Body: report.CompiledBody}
+	document := scenario.Document{ID: fixture, PluginID: "mysql-mock", PluginVersion: refs[pluginapi.Right].Version, ContractID: "mysql.operation", ContractVersion: 1, Input: input, Body: report.CompiledBody}
 	callTool(t, client, "mock_scenario_put", map[string]any{"document": document, "expected_version": 0}, &document)
 	var generatedID string
 	var baseline []byte
@@ -264,7 +269,7 @@ func TestAgentFlowAndReplay(t *testing.T) {
 			t.Fatalf("%s: %+v %v\n%s", mode, status, err, log)
 		}
 		t.Logf("%s run=%s succeeded", mode, run.ID)
-		artifacts := filepath.Join(repo, "artifacts/p0", run.ID)
+		artifacts := filepath.Join(repo, "artifacts/"+stage, run.ID)
 		os.MkdirAll(artifacts, 0700)
 		os.WriteFile(filepath.Join(artifacts, "maven.log"), log, 0600)
 		events, _ := os.ReadFile(filepath.Join(root, ".x-mock/traces", run.ID+".ndjson"))
