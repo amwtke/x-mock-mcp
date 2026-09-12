@@ -58,7 +58,9 @@ func parsePlusJava(raw []byte) (*plusJava, error) {
 					return fail("use explicit imports in Plus evidence")
 				}
 				for _, short := range []string{"TableName", "TableField", "TableId", "IdType", "TableLogic", "Version", "FieldFill"} {
-					d.imports[short] = "com.baomidou.mybatisplus.annotation." + short
+					if _, exists := d.imports[short]; !exists {
+						d.imports[short] = "com.baomidou.mybatisplus.annotation." + short
+					}
 				}
 			} else {
 				parts := strings.Split(name, ".")

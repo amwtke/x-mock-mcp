@@ -61,11 +61,22 @@ func parsePlusEntity(raw []byte) (plusEntity, error) {
 	for _, member := range javaChildren(d.decl.ChildByFieldName("body")) {
 		switch member.Kind() {
 		case "field_declaration":
+			if modifiers := javaChild(member, "modifiers"); modifiers != nil {
+				for i := uint(0); i < modifiers.ChildCount(); i++ {
+					kind := modifiers.Child(i).Kind()
+					if kind == "static" || kind == "transient" {
+						return result, fmt.Errorf("static/transient entity properties unsupported")
+					}
+				}
+			}
 			vars := javaChildren(member)
 			var field plusField
 			count := 0
 			for _, v := range vars {
 				if v.Kind() == "variable_declarator" {
+					if v.ChildByFieldName("dimensions") != nil {
+						return result, fmt.Errorf("array entity properties unsupported")
+					}
 					count++
 					field.Property = d.text(v.ChildByFieldName("name"))
 					if v.ChildByFieldName("value") != nil {

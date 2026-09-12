@@ -37,17 +37,20 @@ func TestPlusJavaEntityAndMapper(t *testing.T) {
 
 func TestPlusJavaRejectsUnsupportedOrForgedMapping(t *testing.T) {
 	for name, code := range map[string]string{
-		"fake-annotation":  strings.ReplaceAll(plusCartJava, "com.baomidou.mybatisplus.annotation.TableName", "fake.TableName"),
-		"fake-id-type":     strings.ReplaceAll(plusCartJava, "com.baomidou.mybatisplus.annotation.IdType", "fake.IdType"),
-		"inheritance":      strings.ReplaceAll(plusCartJava, "class Cart {", "class Cart extends Parent {"),
-		"logic-delete":     strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, `@TableLogic @TableField("quantity")`),
-		"field-fill":       strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, `@TableField(value="quantity",fill=FieldFill.INSERT)`),
-		"type-handler":     strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, `@TableField(value="quantity",typeHandler=Custom.class)`),
-		"missing-mapping":  strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, ""),
-		"unsupported-type": strings.ReplaceAll(plusCartJava, "Long quantity", "Integer quantity"),
-		"computed-getter":  strings.ReplaceAll(plusCartJava, "return userId;", "return 2002L;"),
-		"duplicate-column": strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, `@TableField("user_id")`),
-		"broken-java":      plusCartJava[:len(plusCartJava)-1],
+		"fake-annotation":      strings.ReplaceAll(plusCartJava, "com.baomidou.mybatisplus.annotation.TableName", "fake.TableName"),
+		"fake-id-type":         strings.ReplaceAll(plusCartJava, "com.baomidou.mybatisplus.annotation.IdType", "fake.IdType"),
+		"inheritance":          strings.ReplaceAll(plusCartJava, "class Cart {", "class Cart extends Parent {"),
+		"logic-delete":         strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, `@TableLogic @TableField("quantity")`),
+		"field-fill":           strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, `@TableField(value="quantity",fill=FieldFill.INSERT)`),
+		"type-handler":         strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, `@TableField(value="quantity",typeHandler=Custom.class)`),
+		"missing-mapping":      strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, ""),
+		"unsupported-type":     strings.ReplaceAll(plusCartJava, "Long quantity", "Integer quantity"),
+		"computed-getter":      strings.ReplaceAll(plusCartJava, "return userId;", "return 2002L;"),
+		"duplicate-column":     strings.ReplaceAll(plusCartJava, `@TableField("quantity")`, `@TableField("user_id")`),
+		"static-field":         strings.ReplaceAll(plusCartJava, "private Long quantity", "private static Long quantity"),
+		"array-field":          strings.ReplaceAll(plusCartJava, "Long quantity;", "Long quantity[];"),
+		"explicit-import-wins": strings.ReplaceAll(plusCartJava, "import com.baomidou.mybatisplus.annotation.TableName;", "import fake.TableName;\nimport com.baomidou.mybatisplus.annotation.*;"),
+		"broken-java":          plusCartJava[:len(plusCartJava)-1],
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := parsePlusEntity([]byte(code)); err == nil {

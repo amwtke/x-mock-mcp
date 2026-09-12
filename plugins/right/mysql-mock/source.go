@@ -20,6 +20,8 @@ type PlusSource struct {
 	MapperPath string `json:"mapper_path"`
 	CallMethod string `json:"call_method"`
 	Version    string `json:"version"`
+	BuildPath  string `json:"build_path"`
+	ConfigPath string `json:"config_path"`
 }
 
 type sourceStrategy interface {
@@ -29,6 +31,7 @@ type sourceStrategy interface {
 var sourceStrategies = map[string]sourceStrategy{
 	"java-literal": javaLiteralSource{},
 	"mybatis-xml":  mybatisXMLSource{},
+	"mybatis-plus": mybatisPlusSource{},
 }
 
 func validateStatementSource(statement Statement, files map[string][]byte) error {

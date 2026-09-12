@@ -234,8 +234,10 @@ func canonicalSourceSQL(sql string) (string, string, error) {
 		kind = "insert"
 	case *ast.UpdateStmt:
 		kind = "update"
+	case *ast.DeleteStmt:
+		kind = "delete"
 	default:
-		return "", "", fmt.Errorf("only static SELECT/INSERT/UPDATE Mapper statements supported")
+		return "", "", fmt.Errorf("only static SELECT/INSERT/UPDATE/DELETE Mapper statements supported")
 	}
 	var out strings.Builder
 	if err = nodes[0].Restore(format.NewRestoreCtx(format.DefaultRestoreFlags, &out)); err != nil {
