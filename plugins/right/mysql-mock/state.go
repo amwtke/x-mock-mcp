@@ -23,6 +23,8 @@ func dbError(number uint16, sqlstate, message string) error {
 }
 
 type recordVersion struct {
+	// A nil row is a deletion tombstone. Retain its version so a pending
+	// transaction cannot overwrite a concurrent delete or delete/reinsert.
 	row     Entity
 	version uint64
 }
@@ -79,6 +81,9 @@ func newState(db DatabaseScenario) (*state, error) {
 	return s, nil
 }
 func cloneRow(row Entity) Entity {
+	if row == nil {
+		return nil
+	}
 	out := Entity{}
 	for k, v := range row {
 		if v.IsNull() {
@@ -110,13 +115,19 @@ func (s *state) view(c *connection) map[string]map[string]Entity {
 	for table, rows := range s.committed {
 		view[table] = map[string]Entity{}
 		for k, r := range rows {
-			view[table][k] = cloneRow(r.row)
+			if r.row != nil {
+				view[table][k] = cloneRow(r.row)
+			}
 		}
 	}
 	if c != nil {
 		for table, rows := range c.writes {
 			for key, row := range rows {
-				view[table][key] = cloneRow(row)
+				if row == nil {
+					delete(view[table], key)
+				} else {
+					view[table][key] = cloneRow(row)
+				}
 			}
 		}
 	}
@@ -348,13 +359,31 @@ func (s *state) execute(ctx context.Context, id string, p *Plan, params []mysqlv
 				changed++
 			}
 		}
+	case "delete":
+		for key, row := range view[table.Name] {
+			match, err := rowMatches(row, p.Predicates, params)
+			if err != nil {
+				return nil, err
+			}
+			if match {
+				changes[key] = nil
+				changed++
+			}
+		}
 	default:
 		return nil, dbError(1235, "42000", "unsupported state operation")
 	}
 	for key, row := range changes {
-		view[table.Name][key] = row
+		if row == nil {
+			delete(view[table.Name], key)
+		} else {
+			view[table.Name][key] = row
+		}
 	}
 	if err := validateInitial(s.tables, asInitial(view)); err != nil {
+		if p.Kind == "delete" && strings.Contains(err.Error(), "foreign key") {
+			return nil, dbError(1451, "23000", err.Error())
+		}
 		return nil, constraintError(err)
 	}
 	if err := ctx.Err(); err != nil {

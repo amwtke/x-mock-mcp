@@ -61,6 +61,9 @@ func Compile(statement Statement, tables []Table, database string) (*Plan, error
 		if !ok {
 			return fmt.Errorf("table reference unsupported")
 		}
+		if len(name.PartitionNames) > 0 || len(name.IndexHints) > 0 {
+			return fmt.Errorf("table partitions and index hints unsupported")
+		}
 		if name.Schema.O != "" && name.Schema.O != database {
 			return fmt.Errorf("database qualifier mismatch")
 		}
@@ -204,6 +207,18 @@ func Compile(statement Statement, tables []Table, database string) (*Plan, error
 			}
 			p.Assignments = append(p.Assignments, a)
 		}
+		p.Predicates, err = c.predicates(n.Where)
+		if err != nil {
+			return nil, err
+		}
+	case *ast.DeleteStmt:
+		if n.IsMultiTable || n.Where == nil || n.Order != nil || n.Limit != nil || n.IgnoreErr || n.Quick || n.With != nil || len(n.TableHints) > 0 || n.Priority != 0 {
+			return nil, fmt.Errorf("only bounded single-table DELETE supported")
+		}
+		if err = getTable(n.TableRefs); err != nil {
+			return nil, err
+		}
+		p.Kind = "delete"
 		p.Predicates, err = c.predicates(n.Where)
 		if err != nil {
 			return nil, err
