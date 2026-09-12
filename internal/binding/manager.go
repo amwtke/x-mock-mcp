@@ -38,6 +38,7 @@ type Config struct {
 	ScenarioVersion  int64                     `json:"scenario_version"`
 	RequestTimeoutMS int64                     `json:"request_timeout_ms"`
 	DataStrategy     pluginapi.DataStrategy    `json:"-"`
+	DataStrategyName string                    `json:"data_strategy,omitempty"`
 	OutcomeObserver  pluginapi.OutcomeObserver `json:"-"`
 	OnFailure        func(error)               `json:"-"`
 }
@@ -177,6 +178,7 @@ func (m *Manager) Create(ctx context.Context, c Config) (out Binding, err error)
 	out = Binding{ID: ID(), EnvironmentID: c.EnvironmentID, ResourceID: c.ResourceID, Left: c.Left, Right: c.Right, Contract: effective}
 	e.binding = out
 	spec := pluginapi.InstanceSpec{InstanceID: ID(), EnvironmentID: c.EnvironmentID, BindingID: out.ID, ResourceID: c.ResourceID, Contract: effective, Config: c.RightConfig, Scenario: c.Scenario, ScenarioVersion: c.ScenarioVersion}
+	spec.DataStrategy = c.DataStrategyName
 	ready, err := e.right.Start(ctx, spec)
 	if err != nil {
 		return out, err
@@ -305,6 +307,7 @@ func (m *Manager) dispatch(e *entry, ctx context.Context, q pluginapi.Request) (
 	q.RunID = e.runID
 	e.mu.Unlock()
 	q.ID = ID()
+	q.StartedUnixMS = time.Now().UnixMilli()
 	deadline := time.Now().Add(time.Duration(e.config.RequestTimeoutMS) * time.Millisecond)
 	if d, ok := ctx.Deadline(); ok && d.Before(deadline) {
 		deadline = d
@@ -333,10 +336,14 @@ func (m *Manager) dispatch(e *entry, ctx context.Context, q pluginapi.Request) (
 		return nil, decision.Error
 	case "needs_data":
 		need := *decision.Need
-		need.RequestID = q.ID
+		if need.RequestID != q.ID {
+			return nil, pluginapi.Fail("STATE_CONFLICT", "right returned a different request identity")
+		}
 		if need.DeadlineUnixMS > q.DeadlineUnixMS {
 			need.DeadlineUnixMS = q.DeadlineUnixMS
 		}
+		ctx, cancelNeed := context.WithDeadline(ctx, time.UnixMilli(need.DeadlineUnixMS))
+		defer cancelNeed()
 		if e.config.DataStrategy == nil {
 			return nil, pluginapi.Fail("UNMATCHED_REQUEST", "no data strategy configured")
 		}
@@ -350,4 +357,15 @@ func (m *Manager) dispatch(e *entry, ctx context.Context, q pluginapi.Request) (
 		return e.right.Complete(ctx, pluginapi.Resolution{RequestID: q.ID, Continuation: need.Continuation, StateVersion: need.StateVersion, Payload: candidate})
 	}
 	return nil, pluginapi.Invalid("unreachable decision")
+}
+
+// Seal keeps the right process available for verified export while preventing
+// application traffic from mutating a completed run.
+func (m *Manager) Seal(id string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if e := m.entries[id]; e != nil {
+		e.active.Store(false)
+		e.cancel()
+	}
 }
