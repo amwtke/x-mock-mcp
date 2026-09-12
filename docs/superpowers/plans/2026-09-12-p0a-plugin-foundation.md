@@ -32,9 +32,9 @@
 
 ## Task A1: 固定工具链与项目边界
 
-- [ ] 在执行时使用隔离工作树；读取 using-git-worktrees 后创建实施分支。当前设计与计划留在已确认提交中。
-- [ ] 准备项目本地 Go 1.27.1：从 go.dev 的 JSON 下载目录取得当前平台压缩包和 SHA-256，下载到 `.tools/downloads/`，校验后解压到 `.tools/go/1.27.1/`。不修改系统 Go 或全局 shell 配置；校验失败删除临时包并退出。
-- [ ] 创建 `go.mod`，完整初始内容：
+- [x] 在执行时使用隔离工作树；读取 using-git-worktrees 后创建实施分支。当前设计与计划留在已确认提交中。
+- [x] 准备项目本地 Go 1.27.1：从 go.dev 的 JSON 下载目录取得当前平台压缩包和 SHA-256，下载到 `.tools/downloads/`，校验后解压到 `.tools/go/1.27.1/`。不修改系统 Go 或全局 shell 配置；校验失败删除临时包并退出。
+- [x] 创建 `go.mod`，完整初始内容：
 
 ```go
 module xmock.local/x-mock-mcp
@@ -44,7 +44,7 @@ go 1.27.0
 toolchain go1.27.1
 ```
 
-- [ ] 创建 `.gitignore`，忽略 `.tools/`、`.x-mock/`、`bin/`、`dist/`、`artifacts/`、`target/`。创建 `AGENTS.md`，写入以下执行约束：
+- [x] 创建 `.gitignore`，忽略 `.tools/`、`.x-mock/`、`bin/`、`dist/`、`artifacts/`、`target/`。创建 `AGENTS.md`，写入以下执行约束：
 
 ```text
 左端 = 对接应用；右端 = 对接外部依赖。
@@ -56,13 +56,13 @@ MySQL 策略提供 QA 输入要求；依据自然语言、代码和 DDL 编译�
 依据 docs/superpowers/plans/2026-09-12-p0-implementation-plan.md 执行。
 ```
 
-- [ ] 运行 `.tools/go/1.27.1/go/bin/go version`，要求输出包含 `go1.27.1` 和实际平台。后续命令中的 `go` 均指这个可执行文件；执行会话把它所在目录加入自己的 PATH。
-- [ ] 提交：`chore: establish plugin project boundaries`。这是项目配置任务，不添加仅验证文件存在的测试。
+- [x] 运行 `.tools/go/1.27.1/go/bin/go version`，要求输出包含 `go1.27.1` 和实际平台。后续命令中的 `go` 均指这个可执行文件；执行会话把它所在目录加入自己的 PATH。
+- [x] 提交：`chore: establish plugin project boundaries`。这是项目配置任务，不添加仅验证文件存在的测试。
 
 ## Task A2: 定义插件契约与策略接口
 
-- [ ] 创建 `pluginapi/manifest_test.go` 的表驱动测试：左/右合法角色通过；空 ID、`../mysql`、未知角色、`latest`、重复契约版本失败。先运行 `go test ./pluginapi -run TestManifestValidation -count=1`，确认缺少实现时失败。
-- [ ] 在 `pluginapi/manifest.go` 定义以下字段及 JSON 名称：
+- [x] 创建 `pluginapi/manifest_test.go` 的表驱动测试：左/右合法角色通过；空 ID、`../mysql`、未知角色、`latest`、重复契约版本失败。先运行 `go test ./pluginapi -run TestManifestValidation -count=1`，确认缺少实现时失败。
+- [x] 在 `pluginapi/manifest.go` 定义以下字段及 JSON 名称：
 
 ```go
 package pluginapi
@@ -108,7 +108,7 @@ type Manifest struct {
 
 ID 使用 `[a-z][a-z0-9-]{0,63}`；插件版本使用明确的三段数字版本，P0 不接受版本范围；APIMajor 必须为 1。Platform 使用 GOOS/GOARCH 格式，例如 darwin/arm64。契约 ID 是插件声明的字符串，核心不维护 mysql/kafka 枚举。每个 Files 值是小写 64 位十六进制 SHA-256。
 
-- [ ] 在 `pluginapi/request.go` 与 `strategy.go` 定义公共类型；不得把 MySQL 字段放进信封：
+- [x] 在 `pluginapi/request.go` 与 `strategy.go` 定义公共类型；不得把 MySQL 字段放进信封：
 
 ```go
 package pluginapi
@@ -224,7 +224,7 @@ type ScenarioVerifier interface {
 
 右端可声明 scenario.export、scenario.verify 两项 Features，分别通过独立扩展接口实现场景导出和业务调用约束校验。MySQL P0 必须实现；最小 echo 测试插件可以不声明。核心不解析协议专属场景，未声明扩展时也不发送对应 IPC 调用。
 
-- [ ] 在 preparation.go 增加可选 `scenario.prepare` 扩展，MySQL P0 必须声明；Descriptor.Preparation 只有声明该 feature 时才允许存在。核心按这些通用类型调用，不增加数据库字段：
+- [x] 在 preparation.go 增加可选 `scenario.prepare` 扩展，MySQL P0 必须声明；Descriptor.Preparation 只有声明该 feature 时才允许存在。核心按这些通用类型调用，不增加数据库字段：
 
 ```go
 package pluginapi
@@ -272,13 +272,13 @@ type ScenarioPreparer interface {
 
 Ready=true 要求四个 issue 列表为空且存在 compiled_body 和两个摘要；只检查资料、不带 candidate 时不能返回 Ready=true。报告总大小遵循 IPC 上限。ProjectRoot 由 daemon 注入，不接受 MCP 客户端覆盖。通用错误描述资料/状态问题，数据库类型和 SQL 诊断仍归插件。
 
-- [ ] 添加准备契约校验测试：feature 与 schema 缺失/冲突、左端错误声明右端扩展、ready=true 但仍有缺口、ready=false 却包含可运行产物均拒绝。运行 `go test ./pluginapi -count=1`。非准备插件不必实现接口或伪造成功报告。
+- [x] 添加准备契约校验测试：feature 与 schema 缺失/冲突、左端错误声明右端扩展、ready=true 但仍有缺口、ready=false 却包含可运行产物均拒绝。运行 `go test ./pluginapi -count=1`。非准备插件不必实现接口或伪造成功报告。
 
 `Failure` 在 `pluginapi/errors.go` 定义为包含 Code、Message、Details(json.RawMessage) 的结构，实现 Error()。固定通用码：INVALID_ARGUMENT、PLUGIN_API_MISMATCH、CONTRACT_MISMATCH、PLUGIN_IN_USE、PLUGIN_NOT_ENABLED、PLUGIN_EXITED、PORT_IN_USE、DEADLINE_EXCEEDED、CANCELLED、STATE_CONFLICT、UNSUPPORTED、UNMATCHED_REQUEST、QUEUE_FULL、INVALID_RESULT。数据库错误码留在插件 payload 中。
 
 Decision.Kind 只允许 completed、needs_data、unsupported；分别要求且仅允许 Payload、Need、Error 中对应的一项。先实现并验证这个通用联合类型校验，避免空的 completed 被当作成功。
 
-- [ ] 实现 `Descriptor.Validate() error`、`Manifest.Validate() error`、`Decision.Validate() error`。校验失败不产生进程或文件副作用。加入实际数据测试：
+- [x] 实现 `Descriptor.Validate() error`、`Manifest.Validate() error`、`Decision.Validate() error`。校验失败不产生进程或文件副作用。加入实际数据测试：
 
 ```go
 func TestDecisionRejectsConflictingOutcomes(t *testing.T) {
