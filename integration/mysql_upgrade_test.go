@@ -80,7 +80,7 @@ func historicalMySQLRight(t *testing.T) (string, string, pluginapi.Reference) {
 func TestMySQLRightVersionsShareLeftAndUninstallIndependently(t *testing.T) {
 	oldPath, oldSHA, oldRef := historicalMySQLRight(t)
 	newPath, newSHA, newRef := packagePlugin(t, "./plugins/right/mysql-mock", "")
-	if oldRef.Version != "0.1.0" || newRef.Version != "0.2.0" {
+	if oldRef.Version != "0.1.0" || newRef.Version != "0.3.0" {
 		t.Fatalf("need actual independently versioned packages, got %v and %v", oldRef, newRef)
 	}
 	leftPath, leftSHA, leftRef := packagePlugin(t, "./plugins/left/mysql-wire", "")

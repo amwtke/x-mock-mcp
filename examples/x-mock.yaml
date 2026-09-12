@@ -25,3 +25,22 @@ jobs:
     env:
       X_MOCK_MYSQL_URL: 'jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=180000&connectionCollation=utf8mb4_bin'
       PLAYWRIGHT_BROWSERS_PATH: '${project_root}/.tools/playwright-browsers'
+  - name: plus-http
+    argv: [mvn, -B, -ntp, -o, -f, examples/springboot-shop/pom.xml, -Dtest=PlusShopFlowTest, test]
+    working_directory: .
+    timeout_ms: 240000
+    env:
+      X_MOCK_MYSQL_URL: 'jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=180000&connectionCollation=utf8mb4_bin'
+  - name: plus-browser
+    argv: [mvn, -B, -ntp, -o, -f, examples/springboot-shop/pom.xml, -Dtest=PlusShoppingBrowserTest, test]
+    working_directory: .
+    timeout_ms: 240000
+    env:
+      X_MOCK_MYSQL_URL: 'jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=180000&connectionCollation=utf8mb4_bin'
+      PLAYWRIGHT_BROWSERS_PATH: '${project_root}/.tools/playwright-browsers'
+  - name: plus-delete
+    argv: [mvn, -B, -ntp, -o, -f, examples/springboot-shop/pom.xml, -Dtest=PlusDeleteFlowTest, test]
+    working_directory: .
+    timeout_ms: 240000
+    env:
+      X_MOCK_MYSQL_URL: 'jdbc:mysql://${endpoint.app.mysql}/app?sslMode=DISABLED&useServerPrepStmts=true&emulateUnsupportedPstmts=false&cachePrepStmts=false&socketTimeout=180000&connectionCollation=utf8mb4_bin'

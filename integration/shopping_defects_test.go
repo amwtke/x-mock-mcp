@@ -18,10 +18,10 @@ import (
 )
 
 func TestShoppingDefectsKeepQAExpectations(t *testing.T) {
-	shoppingDefects(t, "shop", "ShopFlowTest", false)
+	shoppingDefects(t, "shop", "ShopFlowTest", "jdbc")
 }
 
-func shoppingDefects(t *testing.T, fixture, testClass string, mybatis bool) {
+func shoppingDefects(t *testing.T, fixture, testClass, orm string) {
 	t.Helper()
 	type packaged struct {
 		path, sha string
@@ -32,41 +32,13 @@ func shoppingDefects(t *testing.T, fixture, testClass string, mybatis bool) {
 		p, d, r := packagePlugin(t, source, "")
 		packages = append(packages, packaged{p, d, r})
 	}
-	defects := []string{"missing-insert", "wrong-increment", "missing-user-filter", "forced-rollback"}
-	if mybatis {
-		defects = append(defects, "swapped-mapper-arguments")
-	}
-	for _, defect := range defects {
-		t.Run(defect, func(t *testing.T) {
+	for _, defect := range shoppingDefectCases(orm, fixture) {
+		t.Run(defect.name, func(t *testing.T) {
 			root := copyExamples(t)
-			source := "examples/springboot-shop/src/main/java/local/xmock/CartService.java"
-			if defect == "missing-user-filter" {
-				source = "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java"
-				if mybatis {
-					source = "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml"
-				}
-			}
-			if defect == "swapped-mapper-arguments" {
-				source = "examples/springboot-shop/src/main/java/local/xmock/MyBatisShopRepository.java"
-			}
+			source := defect.source
 			path := filepath.Join(root, source)
 			raw, _ := os.ReadFile(path)
-			code := string(raw)
-			switch defect {
-			case "missing-insert":
-				code = strings.Replace(code, "id=repository.insert(user,productId,quantity);", "id=5001L;", 1)
-			case "wrong-increment":
-				code = strings.Replace(code, "repository.increment(id,user,quantity);", "repository.increment(id,user,quantity+1);", 1)
-			case "missing-user-filter":
-				code = strings.Replace(code, "FROM cart_items WHERE user_id = ? AND product_id = ?", "FROM cart_items WHERE product_id = ?", 1)
-				if mybatis {
-					code = strings.Replace(code, "WHERE user_id = #{userId,jdbcType=BIGINT} AND product_id = #{productId,jdbcType=BIGINT}", "WHERE product_id = #{productId,jdbcType=BIGINT}", 1)
-				}
-			case "swapped-mapper-arguments":
-				code = strings.Replace(code, "mapper.item(user, product)", "mapper.item(product, user)", 1)
-			case "forced-rollback":
-				code = strings.Replace(code, "return new Added(after.id()", "org.springframework.transaction.interceptor.TransactionAspectSupport.currentTransactionStatus().setRollbackOnly(); return new Added(after.id()", 1)
-			}
+			code := strings.Replace(string(raw), defect.before, defect.after, 1)
 			if code == string(raw) {
 				t.Fatal("mutation did not change code")
 			}
@@ -103,15 +75,16 @@ func shoppingDefects(t *testing.T, fixture, testClass string, mybatis bool) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if defect == "missing-user-filter" {
+			if defect.prepareReject {
 				if report.Ready {
-					t.Fatal("undeclared user-filter change accepted")
+					t.Fatal("undeclared SQL/entity change accepted")
 				}
 				for _, issue := range report.Diagnostics {
 					if strings.Contains(issue.Message, "STALE_EVIDENCE") {
 						t.Fatal("only stale evidence caught mutation")
 					}
 				}
+				t.Logf("%s rejected by source validation with refreshed SHA: %+v", defect.name, report.Diagnostics)
 				return
 			}
 			if !report.Ready {
@@ -135,21 +108,18 @@ func shoppingDefects(t *testing.T, fixture, testClass string, mybatis bool) {
 			status, _ := service.Runs.Status(run.ID)
 			log, _ := os.ReadFile(status.LogPath)
 			if err != nil || status.State != "failed" {
-				t.Fatalf("defect passed %s %+v %v\n%s", defect, status, err, log)
+				t.Fatalf("defect passed %s %+v %v\n%s", defect.name, status, err, log)
 			}
 			if !strings.Contains(string(log), "AssertionFailedError") {
 				t.Fatalf("did not reach business assertions\n%s", log)
 			}
-			stage := "p0"
-			if mybatis {
-				stage = "p1"
-			}
+			stage := map[string]string{"jdbc": "p0", "mybatis": "p1", "plus": "p1-plus"}[orm]
 			if err := os.MkdirAll(filepath.Join("../artifacts", stage), 0700); err != nil {
 				t.Fatal(err)
 			}
-			archive := filepath.Join("../artifacts", stage, defect+"-"+binding.ID()+".log")
+			archive := filepath.Join("../artifacts", stage, defect.name+"-"+binding.ID()+".log")
 			os.WriteFile(archive, log, 0600)
-			t.Logf("%s rejected by real HTTP/QA assertions; run=%s", defect, run.ID)
+			t.Logf("%s rejected by real HTTP/QA assertions; run=%s", defect.name, run.ID)
 		})
 	}
 }

@@ -1,5 +1,21 @@
 # 实施记录
 
+## P1.3 MyBatis-Plus（2026-09-12）
+
+在当前会话逐项执行，未使用子代理。分支 `feat/p1-mybatis-plus`，复用 `.worktrees/p0`，基线 master a85214f。守住无真实数据库、无替代 SQL 引擎、无额外模型 API；左端对接应用，右端对接外部依赖，均独立插件。
+
+| 任务 | 状态 | 实际验证 |
+| --- | --- | --- |
+| T1 Java AST / 多文件策略 | 完成 | Tree-sitter离线解析，真实注解/实体/Mapper、错误来源拒绝；parser/tree关闭；源码策略接收已核验SHA文件 |
+| T2 BaseMapper / Wrapper | 完成 | 7种API、eq/排序、真实POM/配置、完整SQL及原生参数名；刷新SHA后仍拒绝条件/列变化，右端race通过 |
+| T3 DELETE 事务 | 完成 | 影响行数1/0、己删可见性、提交/回滚/断连、外键1451、并发删除与重插冲突1213，右端race通过 |
+| T4 真实 Plus 应用 | 完成 | Plus3.5.17真实BoundSql且无DataSource；HTTP/Chromium共用S1–S6；独立QA验证实际DELETE/归属/重复删除 |
+| T5 回填 / 缺陷 / 交付 | 验收完成 | 0.3.0 MCP回填+3次新环境回放各18条业务操作摘要相同；8类缺陷拒绝；全量回归、独立打包及三种CLI演示通过 |
+
+实现按计划分步提交，详见 [Plus 设计](superpowers/specs/2026-09-12-p1-mybatis-plus-design.md)、[实施计划](superpowers/plans/2026-09-12-p1-mybatis-plus-implementation.md) 和 [兼容性边界](compatibility/p1-mybatis-plus.md)。Plus声明支持有限的自动CRUD/Wrapper分支，不将它泛化为完整MySQL或任意MyBatis-Plus工程。Claude账号/模型E2E豁免保持有效。
+
+`scripts/verify-plus.sh` 全部PASS，包含旧JdbcTemplate、XML和Plus、JDBC两种预编译/计数模式、事务、HTTP/stdio、实际0.1.0/0.3.0右端并存卸载、vet/build与无数据库依赖审计。左端安装包摘要与P0/P1.1相同。plus-http、plus-browser、plus-delete演示均成功，环境销毁、daemon正常退出；见 [脱敏运行摘要](compatibility/mybatis-plus-2026-09-12.json)。
+
 ## P1.1 MyBatis（2026-09-12）
 
 执行方式仍为当前会话逐项实现与验证，无子代理。复用隔离工作树 `.worktrees/p0`，分支 `feat/p1-mybatis`，基于已合并 master 的 P0 68ba0aa。

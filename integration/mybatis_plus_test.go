@@ -25,3 +25,11 @@ func TestMyBatisPlusShoppingHTTPBrowserAndDelete(t *testing.T) {
 func TestMyBatisPlusAgentFlowAndReplay(t *testing.T) {
 	shoppingAgentFlow(t, "plus", "PlusShoppingBrowserTest", "p1-plus")
 }
+
+func TestMyBatisPlusShoppingDefects(t *testing.T) {
+	shoppingDefects(t, "plus", "PlusShopFlowTest", "plus")
+}
+
+func TestMyBatisPlusDeleteDefects(t *testing.T) {
+	shoppingDefects(t, "plus-delete", "PlusDeleteFlowTest", "plus")
+}

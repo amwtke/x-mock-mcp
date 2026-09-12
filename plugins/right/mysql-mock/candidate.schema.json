@@ -480,6 +480,41 @@
               "source": {
                 "additionalProperties": false,
                 "properties": {
+                  "mybatis_plus": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "build_path": {
+                        "type": "string"
+                      },
+                      "call_method": {
+                        "type": "string"
+                      },
+                      "config_path": {
+                        "type": "string"
+                      },
+                      "entity_path": {
+                        "type": "string"
+                      },
+                      "mapper_path": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "entity_path",
+                      "mapper_path",
+                      "call_method",
+                      "version",
+                      "build_path",
+                      "config_path"
+                    ],
+                    "type": [
+                      "null",
+                      "object"
+                    ]
+                  },
                   "namespace": {
                     "type": "string"
                   },

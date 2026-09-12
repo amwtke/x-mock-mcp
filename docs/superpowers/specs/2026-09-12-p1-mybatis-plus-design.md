@@ -16,7 +16,7 @@ QA 自然语言 → Coding Agent 分析实际源码/DDL → MCP 提交场景与�
 
 ## 来源与支持范围
 
-`statement.source` 保留 strategy/namespace/statement_id，新增 `mybatis_plus` 对象：`entity_path`、`mapper_path`、`call_method`、`version`。`source_path` 指向实际调用 Mapper 的 Java 类；namespace 是 Mapper 全限定名，statement_id 是被继承的 BaseMapper 方法名。所有引用文件都必须在 input.sources 中且摘要正确。
+`statement.source` 保留 strategy/namespace/statement_id，新增 `mybatis_plus` 对象：`entity_path`、`mapper_path`、`call_method`、`version`、`build_path`、`config_path`。后两者核对实际POM与Plus properties，不能仅相信候选版本字符串。`source_path` 指向实际调用 Mapper 的 Java 类；namespace 是 Mapper 全限定名，statement_id 是被继承的 BaseMapper 方法名。所有引用文件都必须在 input.sources 中且摘要正确。
 
 右端离线读取 Java AST：
 

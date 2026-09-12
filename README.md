@@ -20,7 +20,7 @@ MCP 是 Coding Agent 的控制入口。Spring Boot JDBC 只连接我们左端的
 
 ## 构建与运行
 
-需要 Go 1.27.1、Python 3、Bash。购物验收还需要 JDK 21、Maven 和 Playwright 配套 Chromium。当前实测平台为 macOS arm64；详细版本及限制见 [兼容性记录](docs/compatibility/p0.md)。
+需要 Go 1.27.1、Python 3、Bash，以及构建右端离线 Java AST 解析器所需的 C 编译器（CGO）。安装编译好的插件包不需要 C 编译器。购物验收还需要 JDK 21、Maven 和 Playwright 配套 Chromium。当前实测平台为 macOS arm64；详细版本及限制见 [Plus 兼容性记录](docs/compatibility/p1-mybatis-plus.md)。
 
 ```bash
 # 若 Go 不在 PATH，可通过 X_MOCK_GO 指定；也会识别项目 .tools 中的工具链
@@ -46,6 +46,11 @@ python3 scripts/demo-replay.py --root "$PWD" --job shopping-browser
 # 使用真实 MyBatis Mapper，仍只连接我们的协议端口
 python3 scripts/demo-replay.py --root "$PWD" --job mybatis-http
 python3 scripts/demo-replay.py --root "$PWD" --job mybatis-browser
+
+# 使用真实 MyBatis-Plus 自动 CRUD / Wrapper，独立用例验证删除
+python3 scripts/demo-replay.py --root "$PWD" --job plus-http
+python3 scripts/demo-replay.py --root "$PWD" --job plus-browser
+python3 scripts/demo-replay.py --root "$PWD" --job plus-delete
 ```
 
 脚本通过 CLI/MCP 安装并启用插件、准备场景、启动真实 Spring Boot 测试，并销毁自己创建的环境。每轮从空购物车开始；插件保持安装，供后续 Agent 使用。此脚本演示 StrictReplay，使用仓库中可审查的固定场景。Maven 与浏览器依赖准备完毕后，回放使用本地缓存，不访问模型或真实数据库。
@@ -119,7 +124,7 @@ QA 使用 [填写模板](docs/templates/mysql-qa-scenario.md)，无需写 SQL。
 9. `mock_scenario_export` → `mock_scenario_put`：显式选定成功生成，再创建新的 StrictReplay 环境运行同一测试。
 10. `mock_environment_destroy` → `mock_plugin_disable` → `mock_plugin_uninstall`：分别处理两端。
 
-AgentFill 当前只补固定约束下的参考实体。INSERT/UPDATE、生成键、提交/回滚和购物车数量由应用真实请求驱动。候选中的 API 预期用于审查和测试断言，不会代替 Spring Boot 的 HTTP 处理。
+AgentFill 当前只补固定约束下的参考实体。INSERT/UPDATE/DELETE、生成键、提交/回滚和购物车数量由应用真实请求驱动。候选中的 API 预期用于审查和测试断言，不会代替 Spring Boot 的 HTTP 处理。
 
 ## CLI、状态与插件扩展
 
@@ -127,9 +132,13 @@ AgentFill 当前只补固定约束下的参考实体。INSERT/UPDATE、生成键
 
 右端 `mysql-mock/0.2.0` 增加 `mybatis-xml` 源码策略；左端继续使用 `mysql-wire/0.1.0` 和 `mysql.operation/v1`。QA 保留自然语言，Agent 还需读取实际 Mapper XML/Java、业务调用、参数/结果类型、DDL、配置与依赖版本。每条语句引用 XML 文件、namespace、statement ID；参数名按实际 `#{}` 出现顺序声明，右端生成 `?` 后比对完整 SQL，不能用源码摘要更新掩盖条件或参数变化。
 
-样例通过互斥 profile 选择 `ShopDataAccess` 实现：默认 JdbcTemplate，`mybatis` 使用真实 Mapper；Controller、Service 和购物 QA 共用。当前覆盖静态 SELECT/INSERT/UPDATE、constructor resultMap、生成键、事务写后读、回填及回放。动态 XML、`${}`、自定义类型处理器及 MyBatis-Plus 自动 BaseMapper/Wrapper SQL 尚未实现；完整输入示例与边界见 [右端指南](plugins/right/mysql-mock/qa-guide.md) 和 [MyBatis 验收记录](docs/compatibility/p1-mybatis.md)。
+样例通过 profile 选择 `ShopDataAccess` 实现：默认 JdbcTemplate，`mybatis` 使用真实 XML Mapper，`mybatis-plus` 使用自动 CRUD；每次选择其中一种。Controller、Service 和原购物 QA 共用。静态 XML 覆盖 constructor resultMap、生成键、事务写后读、回填及回放。动态 XML、`${}`、自定义类型处理器未支持；完整输入示例与边界见 [右端指南](plugins/right/mysql-mock/qa-guide.md) 和 [MyBatis 验收记录](docs/compatibility/p1-mybatis.md)。
 
-旧右端/场景版本保留。切换到新版本时重新 prepare/put 并固定新的插件版本；不要覆盖已安装的同版本包摘要。真实旧版 0.1.0 与新版 0.2.0 可同时安装、绑定同一个左端，分别卸载。
+右端 `mysql-mock/0.3.0` 新增独立 `mybatis-plus` 策略。Agent 提供实际实体、BaseMapper 接口、调用方法、POM、Plus 配置和 DDL；右端用 Java AST 离线核对自动 SQL。支持显式 Long/String 实体映射、selectById/selectList/selectOne、全字段 insert/updateById、有条件 delete/deleteById，以及直接 LambdaQueryWrapper 的 eq、orderByAsc/Desc。Spring Boot 真正执行 Plus 3.5.17；样例 POM 使用其 Boot3 starter，底层仍为 MyBatis 3.5.19，并保留原 XML/JdbcTemplate 流程。
+
+购物 S1–S6 的名称、价格、数量及用户隔离预期保持不变；独立删除用例验证越权404、本人删除204、删除后空车和重复404。DELETE 在右端维护事务状态、实际影响行数与外键限制，不返回预设成功。Lombok、继承映射、逻辑删除、动态部分字段写入、条件 Wrapper 和全局自定义扩展未支持；详见 [Plus 验收与边界](docs/compatibility/p1-mybatis-plus.md)。
+
+旧右端/场景版本保留。切换到新版本时重新 prepare/put 并固定新的插件版本；不要覆盖已安装的同版本包摘要。真实旧版 0.1.0 与新版 0.3.0 可同时安装、绑定同一个左端0.1.0，分别卸载。
 
 每个 MCP 工具有对应 CLI，例如：
 
@@ -153,12 +162,13 @@ bin/x-mock run trace --root "$PWD" --input trace.json
 ```bash
 bash scripts/verify-p0.sh
 bash scripts/verify-p1.sh
+bash scripts/verify-plus.sh
 ```
 
 脚本先执行核心与插件 race 测试，再执行真实跨进程、JDBC/Hikari、HTTP、Chromium、AgentFill 加三次回放、业务缺陷负例及 HTTP/stdio 兼容测试，最后 vet 与独立打包。日志在 `artifacts/p0/`。不需要模型账号；真实 Codex 模型验收另有记录。
 
-`verify-p1.sh` 包含上述回归，再验证真实 MyBatis 的离线 BoundSql 和依赖边界，P1 浏览器/回放轨迹在 `artifacts/p1/`。依赖检查会拒绝已列明的真实或替代 SQL 引擎、容器启动库，允许 JDBC 客户端及离线 parser。升级测试从仓库历史 `68ba0aa` 构建实际旧右端，因此验收 checkout 必须包含该提交。两个验证入口择一执行即可，P1 已包含 P0。
+`verify-plus.sh` 包含 P0/P1 回归、真实 MyBatis 与 Plus 的离线 BoundSql、生成键检查和依赖边界。Plus 浏览器/回放轨迹在 `artifacts/p1-plus/`。依赖检查会拒绝已列明的真实或替代 SQL 引擎、容器启动库，允许 JDBC 客户端及离线 parser。升级测试从仓库历史 `68ba0aa` 构建实际旧右端，因此验收 checkout 必须包含该提交。当前执行 `verify-plus.sh` 即可，无需重复运行前两个入口。
 
-P0 支持 BIGINT/VARCHAR、受限单表 SELECT/INSERT/UPDATE 和有限 READ COMMITTED 行为。它不等价于完整 MySQL：JOIN、DELETE、DECIMAL、时间类型、运行时 DDL、其他隔离等级、TLS 及完整 InnoDB 锁行为未实现。DDL 的 ENGINE 等表选项也会拒绝。只读固定场景与有状态购物场景均有明确校验，未匹配操作不会返回伪造成功。
+当前支持 BIGINT/VARCHAR、受限单表 SELECT/INSERT/UPDATE/DELETE 和有限 READ COMMITTED 行为。它不等价于完整 MySQL：JOIN、DECIMAL、时间类型、运行时 DDL、其他隔离等级、TLS 及完整 InnoDB 锁行为未实现。DDL 的 ENGINE 等表选项也会拒绝。只读固定场景与有状态购物场景均有明确校验，未匹配操作不会返回伪造成功。
 
 详见 [兼容性与验收证据](docs/compatibility/p0.md)、[实施记录](docs/implementation-progress.md) 和 [总体设计](docs/superpowers/specs/2026-09-12-x-mock-mcp-design.md)。

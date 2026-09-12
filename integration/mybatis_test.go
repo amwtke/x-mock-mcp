@@ -26,5 +26,5 @@ func TestMyBatisAgentFlowAndReplay(t *testing.T) {
 }
 
 func TestMyBatisShoppingDefects(t *testing.T) {
-	shoppingDefects(t, "mybatis", "MyBatisShopFlowTest", true)
+	shoppingDefects(t, "mybatis", "MyBatisShopFlowTest", "mybatis")
 }

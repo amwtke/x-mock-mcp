@@ -14,7 +14,7 @@ import uuid
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--root', type=pathlib.Path, default=pathlib.Path.cwd())
-parser.add_argument('--job', choices=['shop-http', 'shopping-browser', 'mybatis-http', 'mybatis-browser'], default='shop-http')
+parser.add_argument('--job', choices=['shop-http', 'shopping-browser', 'mybatis-http', 'mybatis-browser', 'plus-http', 'plus-browser', 'plus-delete'], default='shop-http')
 args = parser.parse_args()
 root = args.root.resolve(strict=True)
 repo = pathlib.Path(__file__).resolve().parents[1]
@@ -56,7 +56,8 @@ try:
         elif current['sha256'] != digest:
             raise RuntimeError(f'{name}/{version} already installed with another digest; explicitly retire that version first')
         call(['plugin', 'enable'], {'role': role, 'plugin_id': name, 'version': version})
-    fixture = 'mybatis' if args.job.startswith('mybatis-') else 'shop'
+    fixture = {'mybatis-http': 'mybatis', 'mybatis-browser': 'mybatis',
+               'plus-http': 'plus', 'plus-browser': 'plus', 'plus-delete': 'plus-delete'}.get(args.job, 'shop')
     input_body = json.loads((root / f'examples/scenarios/{fixture}-input.json').read_text())
     candidate = json.loads((root / f'examples/scenarios/{fixture}-candidate.json').read_text())
     report = call(['scenario', 'prepare'], {'role': 'right', 'plugin_id': 'mysql-mock',
