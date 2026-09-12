@@ -18,6 +18,7 @@ type sourceStrategy interface{ Validate(Statement, []byte) error }
 
 var sourceStrategies = map[string]sourceStrategy{
 	"java-literal": javaLiteralSource{},
+	"mybatis-xml":  mybatisXMLSource{},
 }
 
 func validateStatementSource(statement Statement, files map[string][]byte) error {
