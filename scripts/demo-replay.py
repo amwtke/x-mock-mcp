@@ -14,7 +14,7 @@ import uuid
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--root', type=pathlib.Path, default=pathlib.Path.cwd())
-parser.add_argument('--job', choices=['shop-http', 'shopping-browser'], default='shop-http')
+parser.add_argument('--job', choices=['shop-http', 'shopping-browser', 'mybatis-http', 'mybatis-browser'], default='shop-http')
 args = parser.parse_args()
 root = args.root.resolve(strict=True)
 repo = pathlib.Path(__file__).resolve().parents[1]
@@ -39,33 +39,38 @@ def call(command, body):
 env = None
 try:
     caps = call(['capabilities'], {})
+    refs = {}
     for role, name in [('left', 'mysql-wire'), ('right', 'mysql-mock')]:
-        matches = list((repo / 'dist').glob(f'{role}-{name}-0.1.0-*.zip'))
+        descriptor = json.loads(subprocess.check_output([str(repo / 'bin' / name), '--describe']))
+        ref = descriptor['ref']
+        refs[role] = ref
+        version = ref['version']
+        matches = list((repo / 'dist').glob(f'{role}-{name}-{version}-*.zip'))
         if len(matches) != 1:
             raise RuntimeError('run scripts/build.sh; dist must contain one package per role for this platform')
         package = matches[0]
         digest = hashlib.sha256(package.read_bytes()).hexdigest()
-        ref = {'id': name, 'role': role, 'version': '0.1.0'}
         current = next((p for p in caps['plugins'] if p['ref'] == ref), None)
         if current is None:
             call(['plugin', 'install'], {'package_path': str(package), 'sha256': digest})
         elif current['sha256'] != digest:
-            raise RuntimeError(f'{name}/0.1.0 already installed with another digest; explicitly retire that version first')
-        call(['plugin', 'enable'], {'role': role, 'plugin_id': name, 'version': '0.1.0'})
-    input_body = json.loads((root / 'examples/scenarios/shop-input.json').read_text())
-    candidate = json.loads((root / 'examples/scenarios/shop-candidate.json').read_text())
+            raise RuntimeError(f'{name}/{version} already installed with another digest; explicitly retire that version first')
+        call(['plugin', 'enable'], {'role': role, 'plugin_id': name, 'version': version})
+    fixture = 'mybatis' if args.job.startswith('mybatis-') else 'shop'
+    input_body = json.loads((root / f'examples/scenarios/{fixture}-input.json').read_text())
+    candidate = json.loads((root / f'examples/scenarios/{fixture}-candidate.json').read_text())
     report = call(['scenario', 'prepare'], {'role': 'right', 'plugin_id': 'mysql-mock',
-                   'version': '0.1.0', 'input': input_body, 'candidate': candidate})
+                   'version': refs['right']['version'], 'input': input_body, 'candidate': candidate})
     if not report['ready']:
         raise RuntimeError('scenario preparation rejected input; inspect the saved preparation report')
     document = call(['scenario', 'put'], {'expected_version': 0, 'document': {
-        'id': 'demo-' + uuid.uuid4().hex, 'version': 0, 'plugin_id': 'mysql-mock', 'plugin_version': '0.1.0',
+        'id': 'demo-' + uuid.uuid4().hex, 'version': 0, 'plugin_id': 'mysql-mock', 'plugin_version': refs['right']['version'],
         'contract_id': 'mysql.operation', 'contract_version': 1,
         'input': input_body, 'body': report['compiled_body']}})
     env = call(['env', 'create'], {'scenario_id': document['id'], 'scenario_version': document['version'],
         'data_strategy': 'StrictReplay', 'timeout_ms': 10000, 'bindings': [{
-            'resource_id': 'app', 'left': {'id': 'mysql-wire', 'version': '0.1.0', 'role': 'left'},
-            'right': {'id': 'mysql-mock', 'version': '0.1.0', 'role': 'right'},
+            'resource_id': 'app', 'left': refs['left'],
+            'right': refs['right'],
             'contract': {'id': 'mysql.operation', 'version': 1, 'capabilities': []},
             'left_config': {'host': '127.0.0.1', 'port': 0, 'username': 'mock', 'password': 'mock-local'},
             'right_config': {'mode': 'StrictReplay'}}]})

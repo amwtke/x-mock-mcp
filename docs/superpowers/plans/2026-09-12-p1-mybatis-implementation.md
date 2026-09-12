@@ -70,8 +70,8 @@ type sourceStrategy interface { Validate(Statement, []byte) error }
 
 ## Task 3：真实购物 Mapper 与夹具
 
-- [ ] 新增离线 `MapperContractTest`：使用真实 MyBatis XMLMapperBuilder 和 `MappedStatement.getBoundSql`，无需 DataSource；核对六条 SQL、参数 property 顺序、生成键与结果映射。运行 `mvn -B -ntp -f examples/springboot-shop/pom.xml -Dtest=MapperContractTest test` 观察 Mapper 资源缺失失败。
-- [ ] POM 增加锁定的 MyBatis starter；原 Repository 增加 `!mybatis` profile。新增 `ShopDataAccess` 接口供原 Repository 和 `mybatis` Repository 实现，重用现有 Product/CartItem 公共类型，六个操作全部经注入的 `@Mapper` 调用，INSERT 校验 changed=1 和回填生成键。
+- [x] 新增离线 `MapperContractTest`：使用真实 MyBatis XMLMapperBuilder 和 `MappedStatement.getBoundSql`，无需 DataSource；核对六条 SQL、参数 property 顺序、生成键与结果映射。运行 `mvn -B -ntp -f examples/springboot-shop/pom.xml -Dtest=MapperContractTest test` 观察 Mapper 资源缺失失败。
+- [x] POM 增加锁定的 MyBatis starter；原 Repository 增加 `!mybatis` profile。新增 `ShopDataAccess` 接口供原 Repository 和 `mybatis` Repository 实现，重用现有 Product/CartItem 公共类型，六个操作全部经注入的 `@Mapper` 调用，INSERT 校验 changed=1 和回填生成键。
 
 ```java
 @Mapper
@@ -85,25 +85,25 @@ public interface ShopMapper {
 }
 ```
 
-- [ ] XML 复用原六条 SQL，用 `#{}` 明确映射；Product/CartItem record 采用 constructor resultMap；`insert useGeneratedKeys="true" keyProperty="id"`。新增 profile 配置 mapper-locations、`local-cache-scope=STATEMENT`，保证事务内写后读真实查询。
-- [ ] 夹具脚本读取现有固定 QA、真实 XML 和源码，输出 `mybatis-input.json` / `mybatis-candidate.json` / `mybatis-explore-candidate.json`；初态空车、固定价格和 QA 原文保持一致。
-- [ ] 运行离线 Mapper 测试与新 prepare 夹具测试，提交 `feat: exercise shopping through real MyBatis mappers`。
+- [x] XML 复用原六条 SQL，用 `#{}` 明确映射；Product/CartItem record 采用 constructor resultMap；`insert useGeneratedKeys="true" keyProperty="id"`。新增 profile 配置 mapper-locations、`local-cache-scope=STATEMENT`，保证事务内写后读真实查询。
+- [x] 夹具脚本读取现有固定 QA、真实 XML 和源码，输出 `mybatis-input.json` / `mybatis-candidate.json` / `mybatis-explore-candidate.json`；初态空车、固定价格和 QA 原文保持一致。
+- [x] 运行离线 Mapper 测试与新 prepare 夹具测试，提交 `feat: exercise shopping through real MyBatis mappers`。
 
 ## Task 4：协议和 MCP 验收
 
-- [ ] 增加 `TestMyBatisShoppingHTTPAndBrowser`：启动真实插件对，JDBC URL 只来自 binding 的实际监听地址，分别新环境执行 `ShopFlowTest` 和 `ShoppingBrowserTest`，启用 `mock,mybatis`。
-- [ ] 将原 `TestAgentFlowAndReplay` 提取同文件参数化辅助函数，默认 JdbcTemplate 行为不变；新增 MyBatis 调用，读取 MyBatis 场景和 profile，保留实际 MCP 16 工具、next/resolve、换主、初态导出和三次回放业务轨迹比较。
-- [ ] 正例命令：`$X_MOCK_GO test ./integration -run 'TestMyBatis(Shopping|Agent)' -v -count=1 -timeout=8m`。缺功能时保留红灯输出，修复真实映射或协议缺口后必须通过。
-- [ ] 增加两类真实缺陷：刷新 Mapper SHA 仍保持原候选时漏用户条件被 prepare 拒绝；交换 Java Mapper 参数调用但不改 QA 时真实 HTTP 失败，不能因环境错误误判成功。参考现有 shopping_defects_test 的隔离源码和 AssertionFailedError 检查。
-- [ ] 记录 artifacts/p1 的 JUnit、浏览器和协议业务轨迹，提交 `test: verify MyBatis over mock MySQL with agent fill and replay`。
+- [x] 增加 `TestMyBatisShoppingHTTPAndBrowser`：启动真实插件对，JDBC URL 只来自 binding 的实际监听地址，分别新环境执行 `ShopFlowTest` 和 `ShoppingBrowserTest`，启用 `mock,mybatis`。
+- [x] 将原 `TestAgentFlowAndReplay` 提取同文件参数化辅助函数，默认 JdbcTemplate 行为不变；新增 MyBatis 调用，读取 MyBatis 场景和 profile，保留实际 MCP 16 工具、next/resolve、换主、初态导出和三次回放业务轨迹比较。
+- [x] 正例命令：`$X_MOCK_GO test ./integration -run 'TestMyBatis(Shopping|Agent)' -v -count=1 -timeout=8m`。缺功能时保留红灯输出，修复真实映射或协议缺口后必须通过。
+- [x] 增加两类真实缺陷：刷新 Mapper SHA 仍保持原候选时漏用户条件被 prepare 拒绝；交换 Java Mapper 参数调用但不改 QA 时真实 HTTP 失败，不能因环境错误误判成功。参考现有 shopping_defects_test 的隔离源码和 AssertionFailedError 检查。
+- [x] 记录 artifacts/p1 的 JUnit、浏览器和协议业务轨迹，提交 `test: verify MyBatis over mock MySQL with agent fill and replay`。
 
 ## Task 5：版本和交付
 
-- [ ] 右端版本升级 0.2.0；左端保持 0.1.0、契约 v1。将集成测试的右端版本取自实际包 descriptor，演示脚本从当前构建 descriptor 选择版本，避免取 dist 的旧包。
-- [ ] 通过现有 catalog/runtime 在同项目装旧 0.1.0 和新 0.2.0 右端，分别绑定同一左端；旧场景仍可运行，卸载一个版本保留另一个。旧包使用 68ba0aa 真实源码构建，不能用改版本号的假旧实现代替。
-- [ ] 更新右端 QA guide：明确 QA 必填项、XML/Mapper/配置依赖版本资料、source 对象示例、动态/Plus 自动 SQL 未支持诊断、无数据库约束。执行 `bash scripts/build.sh` 刷新 schemas/manifest。
-- [ ] 新增 `scripts/verify-p1.sh`：先既有 `verify-p0.sh` 全量回归（含新 integration），然后执行 MapperContractTest 和无数据库依赖检查；脚本只能安装 JVM 客户端依赖/Chromium，绝无数据库安装命令或服务。
-- [ ] 完成 README、compatibility/p1-mybatis.md、implementation-progress.md，列真实版本和实际范围；提交 `docs: ship MyBatis support without a database service`。
+- [x] 右端版本升级 0.2.0；左端保持 0.1.0、契约 v1。将集成测试的右端版本取自实际包 descriptor，演示脚本从当前构建 descriptor 选择版本，避免取 dist 的旧包。
+- [x] 通过现有 catalog/runtime 在同项目装旧 0.1.0 和新 0.2.0 右端，分别绑定同一左端；旧场景仍可运行，卸载一个版本保留另一个。旧包使用 68ba0aa 真实源码构建，不能用改版本号的假旧实现代替。
+- [x] 更新右端 QA guide：明确 QA 必填项、XML/Mapper/配置依赖版本资料、source 对象示例、动态/Plus 自动 SQL 未支持诊断、无数据库约束。执行 `bash scripts/build.sh` 刷新 schemas/manifest。
+- [x] 新增 `scripts/verify-p1.sh`：先既有 `verify-p0.sh` 全量回归（含新 integration），然后执行 MapperContractTest 和无数据库依赖检查；脚本只能安装 JVM 客户端依赖/Chromium，绝无数据库安装命令或服务。
+- [x] 完成 README、compatibility/p1-mybatis.md、implementation-progress.md，列真实版本和实际范围；提交 `docs: ship MyBatis support without a database service`。
 
 ## 自审与后续边界
 

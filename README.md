@@ -16,7 +16,7 @@ flowchart LR
     Control --> Router
 ```
 
-MCP 是控制入口。MySQL 报文由左端编码，SQL 与状态规则归右端；核心只依赖策略接口。服务不配置模型 API、不调用额外模型、不启动 MySQL 或替代 SQL 引擎。生成通过 Coding Agent 主动取件、回填完成。
+MCP 是 Coding Agent 的控制入口。Spring Boot JDBC 只连接我们左端的 MySQL 协议端口；右端把 QA/源码/DDL 推导出的场景落实为请求结果与状态，左端编码 MySQL 报文。核心只依赖策略接口。**不安装、不启动真实 MySQL、容器数据库或替代 SQL 引擎，不转发真实数据库兜底，不配置额外模型 API。** 参考数据通过已连接 Coding Agent 主动取件、回填完成；业务写入仍由应用产生。
 
 ## 构建与运行
 
@@ -42,6 +42,10 @@ JAVA_HOME="$X_MOCK_JAVA_HOME" bin/x-mock serve \
 ```bash
 python3 scripts/demo-replay.py --root "$PWD" --job shop-http
 python3 scripts/demo-replay.py --root "$PWD" --job shopping-browser
+
+# 使用真实 MyBatis Mapper，仍只连接我们的协议端口
+python3 scripts/demo-replay.py --root "$PWD" --job mybatis-http
+python3 scripts/demo-replay.py --root "$PWD" --job mybatis-browser
 ```
 
 脚本通过 CLI/MCP 安装并启用插件、准备场景、启动真实 Spring Boot 测试，并销毁自己创建的环境。每轮从空购物车开始；插件保持安装，供后续 Agent 使用。此脚本演示 StrictReplay，使用仓库中可审查的固定场景。Maven 与浏览器依赖准备完毕后，回放使用本地缓存，不访问模型或真实数据库。
@@ -119,6 +123,14 @@ AgentFill 当前只补固定约束下的参考实体。INSERT/UPDATE、生成键
 
 ## CLI、状态与插件扩展
 
+### MyBatis 接入
+
+右端 `mysql-mock/0.2.0` 增加 `mybatis-xml` 源码策略；左端继续使用 `mysql-wire/0.1.0` 和 `mysql.operation/v1`。QA 保留自然语言，Agent 还需读取实际 Mapper XML/Java、业务调用、参数/结果类型、DDL、配置与依赖版本。每条语句引用 XML 文件、namespace、statement ID；参数名按实际 `#{}` 出现顺序声明，右端生成 `?` 后比对完整 SQL，不能用源码摘要更新掩盖条件或参数变化。
+
+样例通过互斥 profile 选择 `ShopDataAccess` 实现：默认 JdbcTemplate，`mybatis` 使用真实 Mapper；Controller、Service 和购物 QA 共用。当前覆盖静态 SELECT/INSERT/UPDATE、constructor resultMap、生成键、事务写后读、回填及回放。动态 XML、`${}`、自定义类型处理器及 MyBatis-Plus 自动 BaseMapper/Wrapper SQL 尚未实现；完整输入示例与边界见 [右端指南](plugins/right/mysql-mock/qa-guide.md) 和 [MyBatis 验收记录](docs/compatibility/p1-mybatis.md)。
+
+旧右端/场景版本保留。切换到新版本时重新 prepare/put 并固定新的插件版本；不要覆盖已安装的同版本包摘要。真实旧版 0.1.0 与新版 0.2.0 可同时安装、绑定同一个左端，分别卸载。
+
 每个 MCP 工具有对应 CLI，例如：
 
 ```bash
@@ -140,9 +152,12 @@ bin/x-mock run trace --root "$PWD" --input trace.json
 
 ```bash
 bash scripts/verify-p0.sh
+bash scripts/verify-p1.sh
 ```
 
 脚本先执行核心与插件 race 测试，再执行真实跨进程、JDBC/Hikari、HTTP、Chromium、AgentFill 加三次回放、业务缺陷负例及 HTTP/stdio 兼容测试，最后 vet 与独立打包。日志在 `artifacts/p0/`。不需要模型账号；真实 Codex 模型验收另有记录。
+
+`verify-p1.sh` 包含上述回归，再验证真实 MyBatis 的离线 BoundSql 和依赖边界，P1 浏览器/回放轨迹在 `artifacts/p1/`。依赖检查会拒绝已列明的真实或替代 SQL 引擎、容器启动库，允许 JDBC 客户端及离线 parser。升级测试从仓库历史 `68ba0aa` 构建实际旧右端，因此验收 checkout 必须包含该提交。两个验证入口择一执行即可，P1 已包含 P0。
 
 P0 支持 BIGINT/VARCHAR、受限单表 SELECT/INSERT/UPDATE 和有限 READ COMMITTED 行为。它不等价于完整 MySQL：JOIN、DELETE、DECIMAL、时间类型、运行时 DDL、其他隔离等级、TLS 及完整 InnoDB 锁行为未实现。DDL 的 ENGINE 等表选项也会拒绝。只读固定场景与有状态购物场景均有明确校验，未匹配操作不会返回伪造成功。
 

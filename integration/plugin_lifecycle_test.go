@@ -39,6 +39,11 @@ func packagePlugin(t *testing.T, source, alias string) (string, string, pluginap
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build plugin: %v\n%s", err, out)
 	}
+	return packageBinary(t, bin)
+}
+
+func packageBinary(t *testing.T, bin string) (string, string, pluginapi.Reference) {
+	t.Helper()
 	raw, err := exec.Command(bin, "--describe").Output()
 	if err != nil {
 		t.Fatal(err)

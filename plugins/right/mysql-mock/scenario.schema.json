@@ -477,6 +477,27 @@
                   "object"
                 ]
               },
+              "source": {
+                "additionalProperties": false,
+                "properties": {
+                  "namespace": {
+                    "type": "string"
+                  },
+                  "statement_id": {
+                    "type": "string"
+                  },
+                  "strategy": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "strategy"
+                ],
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
               "source_path": {
                 "type": "string"
               },

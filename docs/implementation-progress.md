@@ -1,4 +1,24 @@
-# P0 实施记录
+# 实施记录
+
+## P1.1 MyBatis（2026-09-12）
+
+执行方式仍为当前会话逐项实现与验证，无子代理。复用隔离工作树 `.worktrees/p0`，分支 `feat/p1-mybatis`，基于已合并 master 的 P0 68ba0aa。
+
+固定约束再次明确：**不安装、不启动真实 MySQL、容器数据库或替代 SQL 引擎，不转发真实数据库兜底，不配置额外模型 API。** Spring Boot JDBC 只连接左端 MySQL 协议端口。Coding Agent 经 MCP 从 QA/源码/DDL 提交场景和参考实体，右端维护状态，左端编码 MySQL 应答；购物车由实际应用写入产生。
+
+| 任务 | 状态 | 实际验证 |
+| --- | --- | --- |
+| P1.1-1 来源策略入口 | 完成 | 先观察 source 不识别和 XML 降级绕过的失败，再通过 Java / XML 路由回归；核心不 import ORM |
+| P1.1-2 静态 Mapper | 完成 | 真实摘要、namespace/id、SQL AST、参数顺序与类型；动态节点、替换、实体、漏条件、重复 ID、字面量改变拒绝；右端 race 通过 |
+| P1.1-3 MyBatis 样例 | 完成 | Starter 3.0.5 / MyBatis 3.5.19；真实 BoundSql 不使用 DataSource，真实 Mapper 结果映射与生成键；ShopDataAccess 选择互斥 Repository |
+| P1.1-4 E2E / 回填 | 完成 | 真实 HTTP/Chromium；MCP 测试客户端 AgentFill + 3 次新环境回放轨迹一致；5 类应用缺陷保持 QA 并失败 |
+| P1.1-5 版本与交付 | 完成 | 真实历史右端 0.1.0 和新版 0.2.0 共用原左端 0.1.0，独立卸载；完整 P0/P1 回归、vet、独立构建、依赖边界审计通过 |
+
+全量入口 `scripts/verify-p1.sh` 已通过，含既有 JDBC、事务、P0 购物、MCP HTTP/stdio、MyBatis、版本并存和打包。更新后的 `demo-replay.py` 已分别执行 mybatis-http、mybatis-browser、shop-http；环境销毁，所属 daemon 正常退出。生产和测试 Go 依赖与 Maven 依赖均检查，未发现已列明的数据库引擎/启动库。
+
+验收详情见 [P1.1 记录](compatibility/p1-mybatis.md) 与 [脱敏摘要](compatibility/mybatis-2026-09-12.json)。MyBatis-Plus BaseMapper/Wrapper 自动 SQL 是下一独立增量，本次未把静态 XML 通过当成 Plus 完成；动态 SQL/新数据库类型也未隐式扩大支持。Claude 账号/真实模型 E2E 的豁免继续有效。
+
+## P0（已合并并推送 master）
 
 执行方式：当前会话逐项实现与验证。工作分支 feat/p0。
 
@@ -37,4 +57,4 @@
 - 实际 Claude CLI 发现工具字段 schema 的布尔简写不兼容，MCP 控制面改为明确 JSON object；插件字段仍独立校验。HTTP/stdio 修复前后输出均保留。
 - 负例的漏用户过滤在 prepare 阶段被源码 SQL 校验拒绝，其余三种由真实 HTTP/状态断言拒绝；浏览器完成购物正例和生成/回放验收。
 
-最终验证：`scripts/verify-p0.sh` 的版本/依赖、core-race、integration、vet、build 全部 PASS；修正文档链接并刷新 QA 文件摘要后，真实 HTTP/浏览器样例再次通过。两个手工启动的 daemon 均正常退出，示例环境销毁后两端活动引用为 0。保留 feat/p0 工作树及本地证据，不推送或发布。
+最终验证：`scripts/verify-p0.sh` 的版本/依赖、core-race、integration、vet、build 全部 PASS；修正文档链接并刷新 QA 文件摘要后，真实 HTTP/浏览器样例再次通过。两个手工启动的 daemon 均正常退出，示例环境销毁后两端活动引用为 0。后续已按用户要求推送 feat/p0 并合并、推送 master；两者当时均为 68ba0aa，本地证据保留。

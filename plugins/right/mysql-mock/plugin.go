@@ -50,7 +50,7 @@ func identifier() string {
 	return hex.EncodeToString(b)
 }
 func (p *plugin) Describe(context.Context) (pluginapi.Descriptor, error) {
-	return pluginapi.Descriptor{Ref: pluginapi.Reference{ID: "mysql-mock", Version: "0.1.0", Role: pluginapi.Right}, APIMajor: 1, Contracts: []pluginapi.Contract{{ID: "mysql.operation", Version: 1, Capabilities: []string{"query", "prepare", "bigint", "varchar", "writes", "transactions"}}}, ConfigSchema: mysqlv1.SchemaFor[config](), ScenarioSchema: mysqlv1.SchemaFor[Bundle](), Features: []string{"scenario.prepare", "scenario.export", "scenario.verify"}, Preparation: &pluginapi.PreparationContract{InputSchema: mysqlv1.SchemaFor[Input](), CandidateSchema: mysqlv1.SchemaFor[Bundle](), Guide: qaGuide}}, nil
+	return pluginapi.Descriptor{Ref: pluginapi.Reference{ID: "mysql-mock", Version: "0.2.0", Role: pluginapi.Right}, APIMajor: 1, Contracts: []pluginapi.Contract{{ID: "mysql.operation", Version: 1, Capabilities: []string{"query", "prepare", "bigint", "varchar", "writes", "transactions"}}}, ConfigSchema: mysqlv1.SchemaFor[config](), ScenarioSchema: mysqlv1.SchemaFor[Bundle](), Features: []string{"scenario.prepare", "scenario.export", "scenario.verify"}, Preparation: &pluginapi.PreparationContract{InputSchema: mysqlv1.SchemaFor[Input](), CandidateSchema: mysqlv1.SchemaFor[Bundle](), Guide: qaGuide}}, nil
 }
 
 //go:embed qa-guide.md

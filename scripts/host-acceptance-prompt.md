@@ -1,6 +1,6 @@
 这是 X-Mock-MCP 的真实 Coding Agent 宿主验收。只作为受测客户端完成流程，不开发或修改 X-Mock-MCP，不启用子代理。
 
-使用已连接的 xmock MCP 工具。左端对接应用，右端对接外部依赖；已安装启用 mysql-wire/0.1.0 和 mysql-mock/0.1.0，均使用 mysql.operation/v1。
+使用已连接的 xmock MCP 工具。左端对接应用，右端对接外部依赖；已安装启用 mysql-wire/0.1.0 和 mysql-mock/0.2.0，均使用 mysql.operation/v1。
 
 1. 读取 mysql-mock 的 guide、qa_input、candidate schema。读取 examples/scenarios/shop.qa.md、样例 Controller/Service/Repository/DTO、测试和 schema.sql。自己分析，不读取其他项目的预制场景。
 2. 保留 QA 原文，归一化 QA 输入。source 引用从当前文件计算 SHA-256。先调用 mock_scenario_prepare(input) 检查资料，再自己编写候选并调用 prepare/put。保存实际 input/candidate/compiled 到 acceptance/。QA 固定价格9900分、名称测试键盘、库存10、状态ON_SALE；内部ID固定P1=1001、U1=2001、U2=2002、购物车自增5001。最后U1同一记录数量2、U2空车、商品不扣库存；initial_assertions要求初始空购物车，final_assertions和verification.final_state一致。

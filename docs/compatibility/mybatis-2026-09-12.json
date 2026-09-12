@@ -1,0 +1,60 @@
+{
+  "date": "2026-09-12",
+  "platform": "darwin/arm64",
+  "packages": {
+    "left": {
+      "id": "mysql-wire",
+      "version": "0.1.0",
+      "package_sha256": "2c0fe19914d4dec09914e79d8bd2dc05a1786f36231f45f8eafac584df7f7b33"
+    },
+    "right": {
+      "id": "mysql-mock",
+      "version": "0.2.0",
+      "package_sha256": "5580a5b8dd752113748b024b56568487058adacf27e3ac964b4df3a6bc33815a"
+    }
+  },
+  "agent_fill_source": "Automated MCP client using the fixed QA reference fixture; not native-model acceptance",
+  "runs": [
+    {
+      "run_id": "e9ec969012bff6697eaa9f455303d592",
+      "mode": "AgentFill",
+      "state": "succeeded",
+      "business_trace_sha256": "2d5514f9ac36098e86c36c0f0078bb6887c1a079dcde45dd49892a72ab6929b3"
+    },
+    {
+      "run_id": "afdd56347f11909a3b984bc4b2704e9f",
+      "mode": "StrictReplay",
+      "state": "succeeded",
+      "business_trace_sha256": "2d5514f9ac36098e86c36c0f0078bb6887c1a079dcde45dd49892a72ab6929b3"
+    },
+    {
+      "run_id": "c6e47fcaead32e6f7278c9371e8457b3",
+      "mode": "StrictReplay",
+      "state": "succeeded",
+      "business_trace_sha256": "2d5514f9ac36098e86c36c0f0078bb6887c1a079dcde45dd49892a72ab6929b3"
+    },
+    {
+      "run_id": "0f632be2b852ce27ab86988a1d5236e4",
+      "mode": "StrictReplay",
+      "state": "succeeded",
+      "business_trace_sha256": "2d5514f9ac36098e86c36c0f0078bb6887c1a079dcde45dd49892a72ab6929b3"
+    }
+  ],
+  "qa": "Unchanged shopping S1-S6; initial empty carts; INSERT/UPDATE performed by real MyBatis application",
+  "defects": [
+    "missing-insert",
+    "wrong-increment",
+    "missing-user-filter",
+    "forced-rollback",
+    "swapped-mapper-arguments"
+  ],
+  "full_verification": "scripts/verify-p1.sh passed; production + test Go dependency audit also passed",
+  "native_hosts": "P0 native acceptance unchanged; no new model run or Claude account required",
+  "demo_runs": {
+    "mybatis-http": "d316aae2c49e4bdd4ed35632d48ac64f",
+    "mybatis-browser": "901e2c1a6117d3c7f318218bf587fb02",
+    "shop-http": "7052ef078501624edebf464ca988cd65"
+  },
+  "database_services_installed_or_started": false,
+  "extra_model_api": false
+}
