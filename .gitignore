@@ -1,0 +1,8 @@
+.worktrees/
+.tools/
+.x-mock/
+bin/
+dist/
+artifacts/
+target/
+.DS_Store

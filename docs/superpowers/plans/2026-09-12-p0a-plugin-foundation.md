@@ -19,6 +19,7 @@
 | `go.mod`、`go.sum`、`.gitignore`、`AGENTS.md` | 模块、固定依赖、产物忽略、固定左右端定义与依赖规则 |
 | `pluginapi/manifest.go`、`manifest_test.go` | 插件角色、包身份、契约与校验 |
 | `pluginapi/request.go`、`strategy.go`、`errors.go` | 请求信封、三类策略、结构化错误 |
+| `pluginapi/preparation.go`、`preparation_test.go` | 通用资料/候选准备扩展、缺口报告及可运行状态校验 |
 | `internal/plugin/catalog/archive.go`、`archive_test.go` | 解包、路径与摘要校验、原子安装 |
 | `internal/plugin/catalog/catalog.go`、`catalog_test.go` | 启用状态、引用、停用卸载、恢复 |
 | `internal/plugin/ipc/frame.go`、`peer.go`、`peer_test.go` | 行分帧、并发请求关联、取消与关闭 |
@@ -50,6 +51,7 @@ toolchain go1.27.1
 左右端均通过独立插件包安装、启用、停用和卸载。
 核心依赖策略接口与注册表，不 import 具体协议插件。
 所有运行固定插件版本、契约版本和场景版本。
+MySQL 策略提供 QA 输入要求；依据自然语言、代码和 DDL 编译场景，不启动真实数据库。
 先验证受支持行为；不以自动成功响应掩盖未实现能力。
 依据 docs/superpowers/plans/2026-09-12-p0-implementation-plan.md 执行。
 ```
@@ -92,6 +94,7 @@ type Descriptor struct {
     Contracts []Contract `json:"contracts"`
     ConfigSchema json.RawMessage `json:"config_schema"`
     ScenarioSchema json.RawMessage `json:"scenario_schema,omitempty"`
+    Preparation *PreparationContract `json:"preparation,omitempty"`
     Features []string `json:"features,omitempty"`
 }
 
@@ -195,6 +198,8 @@ type DataStrategy interface {
 
 type Capture struct {
     Request Request `json:"request"`
+    Candidate json.RawMessage `json:"candidate,omitempty"`
+    GenerationContext json.RawMessage `json:"generation_context,omitempty"`
     Response json.RawMessage `json:"response"`
 }
 
@@ -218,6 +223,56 @@ type ScenarioVerifier interface {
 ```
 
 右端可声明 scenario.export、scenario.verify 两项 Features，分别通过独立扩展接口实现场景导出和业务调用约束校验。MySQL P0 必须实现；最小 echo 测试插件可以不声明。核心不解析协议专属场景，未声明扩展时也不发送对应 IPC 调用。
+
+- [ ] 在 preparation.go 增加可选 `scenario.prepare` 扩展，MySQL P0 必须声明；Descriptor.Preparation 只有声明该 feature 时才允许存在。核心按这些通用类型调用，不增加数据库字段：
+
+```go
+package pluginapi
+
+import (
+    "context"
+    "encoding/json"
+)
+
+type PreparationContract struct {
+    InputSchema json.RawMessage `json:"input_schema"`
+    CandidateSchema json.RawMessage `json:"candidate_schema"`
+    Guide string `json:"guide"`
+}
+
+type PreparationSpec struct {
+    ProjectRoot string `json:"project_root"`
+    Input json.RawMessage `json:"input"`
+    Candidate json.RawMessage `json:"candidate,omitempty"`
+}
+
+type PreparationIssue struct {
+    Code string `json:"code"`
+    Path string `json:"path"`
+    Message string `json:"message"`
+    StepIDs []string `json:"step_ids,omitempty"`
+}
+
+type PreparationReport struct {
+    Ready bool `json:"ready"`
+    MissingInputs []PreparationIssue `json:"missing_inputs"`
+    Ambiguities []PreparationIssue `json:"ambiguities"`
+    Unsupported []PreparationIssue `json:"unsupported"`
+    Diagnostics []PreparationIssue `json:"diagnostics"`
+    Instructions string `json:"instructions,omitempty"`
+    CompiledBody json.RawMessage `json:"compiled_body,omitempty"`
+    InputDigest string `json:"input_digest,omitempty"`
+    CompiledDigest string `json:"compiled_digest,omitempty"`
+}
+
+type ScenarioPreparer interface {
+    Prepare(context.Context, PreparationSpec) (PreparationReport, error)
+}
+```
+
+Ready=true 要求四个 issue 列表为空且存在 compiled_body 和两个摘要；只检查资料、不带 candidate 时不能返回 Ready=true。报告总大小遵循 IPC 上限。ProjectRoot 由 daemon 注入，不接受 MCP 客户端覆盖。通用错误描述资料/状态问题，数据库类型和 SQL 诊断仍归插件。
+
+- [ ] 添加准备契约校验测试：feature 与 schema 缺失/冲突、左端错误声明右端扩展、ready=true 但仍有缺口、ready=false 却包含可运行产物均拒绝。运行 `go test ./pluginapi -count=1`。非准备插件不必实现接口或伪造成功报告。
 
 `Failure` 在 `pluginapi/errors.go` 定义为包含 Code、Message、Details(json.RawMessage) 的结构，实现 Error()。固定通用码：INVALID_ARGUMENT、PLUGIN_API_MISMATCH、CONTRACT_MISMATCH、PLUGIN_IN_USE、PLUGIN_NOT_ENABLED、PLUGIN_EXITED、PORT_IN_USE、DEADLINE_EXCEEDED、CANCELLED、STATE_CONFLICT、UNSUPPORTED、UNMATCHED_REQUEST、QUEUE_FULL、INVALID_RESULT。数据库错误码留在插件 payload 中。
 
@@ -307,6 +362,7 @@ ctx 完成时原子摘除 pending，发送 cancel 通知并返回 ctx 错误；�
 - [ ] 为创建 binding 编写失败测试：右端成功后左端失败，断言右端 Stop 被调用、两个 catalog 引用释放、路由未发布。运行 `go test ./internal/binding -run TestCreateRollsBack -count=1`。
 - [ ] Process 启动使用 exec.Command 的参数数组，入口从已验证安装目录解析；stdin/stdout 专用于 Peer，stderr 进入有界实例日志。Describe 返回的角色/API/契约必须与 manifest 一致。Start 限时 10 秒，Stop 限时 5 秒；超时结束所属进程并 Wait 回收。
 - [ ] 实现 LeftProxy/RightProxy，分别实现 A2 接口。左端回调 `dispatch` 的信封中，environment_id、binding_id、resource_id、run_id 由核心按实例归属覆写；插件不能伪造另一个环境的身份。
+- [ ] RightProxy 按声明转发 prepare/export/verify 扩展；为准备工具提供短生命周期进程路径：Acquire 已启用版本 → 启动进程/Describe → Prepare → 关闭 IPC/Wait → release。不调用 Start，不创建 binding 或端口；取消/崩溃也必须回收引用。配置准备时限 30 秒，不在这里等待 LLM。
 - [ ] 实现 binding.Manager 的算法：
 
 ```text
@@ -326,6 +382,7 @@ Manager 接口固定为 Create(ctx, Config) (Binding, error)、Dispatch(ctx, Req
 Dispatch 只按 bindingID 查已建立策略；调用右端 Execute；completed 返回 Payload，unsupported 返回其错误，needs_data 调用 DataStrategy.Resolve 后调用同一个右端 Complete。阶段切换校验截止时间与实例存活，禁止换到别的右端完成旧 continuation。Dispatch 返回前调用一次 OutcomeObserver，报告最终 payload 或错误；DataStrategy 本身不调用右端 Complete。
 
 - [ ] 创建能力不相交、重复端口、重复销毁、并发创建/销毁测试。测试右端崩溃后取消相关请求并关闭同 binding 左端；另一个 binding 继续完成请求。创建环境含多 binding 时，某一个创建失败也撤销本环境已创建的其他 binding。
+- [ ] 用声明 scenario.prepare 的测试进程验证准备无需左端、不会监听应用端口、停用后不能准备、准备期间不能卸载、取消后引用释放；测试插件只回传 opaque 输入，核心不解释 QA 或 DDL。
 - [ ] 运行 `go test -race ./internal/plugin/runtime ./internal/binding -count=1`。提交：`feat: bind isolated plugin strategies with rollback`。
 
 ## Task A6: 双端真实插件验收

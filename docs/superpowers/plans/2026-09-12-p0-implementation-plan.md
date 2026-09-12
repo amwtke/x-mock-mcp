@@ -2,31 +2,31 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 交付可独立安装和卸载的左右端插件框架，用 MySQL 读取场景完成 Spring Boot、Codex、Claude Code 的首次协作与固定回放。
+**Goal:** 交付可独立安装和卸载的左右端插件框架；由 QA 自然语言、代码和 DDL 生成 MySQL 场景，完成 Spring Boot 购物 E2E、Codex/Claude Code 协作与固定回放，全程不启动真实数据库。
 
-**Architecture:** 左端对接应用，右端对接外部依赖；两端均为独立进程插件，以显式 binding 和版本化契约连接。核心只依赖策略接口、注册表和通用请求信封；MCP 是两个 Coding Agent 共用的控制入口。运行时的数据补全采用 Agent 主动取件与回填，固定回放不调用模型。
+**Architecture:** 左端对接应用，右端对接外部依赖；两端均为独立进程插件，以显式 binding 和版本化契约连接。核心只依赖策略接口、注册表和通用请求信封；MCP 是两个 Coding Agent 共用的控制入口。运行时补全仅由 Coding Agent 主动取件与回填，不配置额外模型 API；固定回放不调用模型。
 
-**Tech Stack:** Go 1.27.1；官方 MCP Go SDK v1.7.0；go-mysql v1.16.0；JSON Schema；本地 JSON-RPC Plugin API；Spring Boot 3.5.16、JDK 21、Connector/J 9.7.0、HikariCP 6.3.3。
+**Tech Stack:** Go 1.27.1；官方 MCP Go SDK v1.7.0；go-mysql v1.16.0；JSON Schema；本地 JSON-RPC Plugin API；Spring Boot 3.5.16、JDK 21、Connector/J 9.7.0、HikariCP 6.3.3；Playwright Java 1.62.0。
 
 ---
 
 ## 已确认设计与实施范围
 
-依据：[已确认设计](../specs/2026-09-12-x-mock-mcp-design.md)。用户于 2026-09-12 确认。
+依据：[总体设计](../specs/2026-09-12-x-mock-mcp-design.md) 与 [MySQL QA/场景契约](../specs/2026-09-12-mysql-qa-scenario-contract.md)。双端架构已确认；本次按用户补充的购物场景修订原只读范围。
 
-本文件是执行入口，三个子计划按顺序执行，每个子计划有明确产物和独立验收。P0 不包含 MySQL 写事务、ClickHouse、Kafka、独立模型 API、真实依赖转发或在线插件市场。
+本文件是执行入口，三个子计划共 18 个任务，按顺序执行。P0 包含受限制的 MySQL SELECT/INSERT/UPDATE、共享状态、READ COMMITTED 可观察行为与提交/回滚；不包含通用 SQL 引擎、其他隔离等级、运行时 DDL、ClickHouse、Kafka、独立模型 API、真实依赖转发或在线插件市场。
 
 | 顺序 | 子计划 | 完成后的可验证产物 |
 | --- | --- | --- |
 | P0A | [双端插件框架](2026-09-12-p0a-plugin-foundation.md) | 可安装的左右端测试插件，通过真实子进程完成路由、取消、回滚和卸载 |
-| P0B | [MySQL 插件对](2026-09-12-p0b-mysql-plugin-pair.md) | `mysql-wire` + `mysql-mock`，真实 JDBC/Hikari 读取、预处理和类型验证通过 |
-| P0C | [MCP、场景协作与应用验收](2026-09-12-p0c-agent-e2e.md) | daemon、CLI、stdio 桥接、Agent 回填、Spring Boot 流程和两个宿主的实际验收 |
+| P0B | [MySQL 插件对](2026-09-12-p0b-mysql-plugin-pair.md) | QA 输入契约、代码/DDL 候选编译、共享数据与事务；真实 JDBC/Hikari 的读写、预处理、类型验证 |
+| P0C | [MCP、场景协作与应用验收](2026-09-12-p0c-agent-e2e.md) | 场景准备工具、daemon、CLI、桥接、Agent 补全、Spring Boot 浏览器购物流程与两个宿主的实测 |
 
 禁止把只通过 MCP Inspector、只成功建立 TCP 连接、或只有 SELECT 1 成功当作 P0 完成。
 
 ## 版本与执行环境
 
-本轮只编写计划，没有安装运行时、编译产品或执行产品测试。当前环境核对结果：
+用户已选择在当前会话中逐项实现与验证，不启用子代理。以下是开始实施前的环境记录；各任务完成后将补充实际证据：
 
 - 仓库原先为空；已确认设计已提交为 `453cbe9`。
 - `go` 不在 PATH 中，P0A 第一个任务准备项目本地 Go 工具链。
@@ -46,6 +46,7 @@
 | Spring Boot | 3.5.16 | [固定 BOM](https://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/3.5.16/spring-boot-dependencies-3.5.16.pom) |
 | Connector/J / HikariCP | 9.7.0 / 6.3.3 | 上述 BOM 的 mysql.version 与 hikaricp.version |
 | Java 验收 | JDK 21.0.12，Maven 3.9.16 | 当前本机可用组合；CI 也固定 JDK 21 |
+| 浏览器 E2E | com.microsoft.playwright:playwright:1.62.0，配套 Chromium | [官方 Java 安装文档](https://playwright.dev/java/docs/intro) 与 [Maven 元数据](https://repo.maven.apache.org/maven2/com/microsoft/playwright/playwright/maven-metadata.xml)；实施时记录实际浏览器版本 |
 
 MCP SDK 的新协议 HTTP 模式设置 `Stateless: true`，业务状态通过 environment_id/run_id 保存。参考 [SDK 兼容表](https://github.com/modelcontextprotocol/go-sdk#version-compatibility)。不会因为去掉 MCP 会话而去掉应用运行状态。
 
@@ -58,7 +59,7 @@ internal/plugin/catalog/           项目插件包、版本、启用状态、引
 internal/plugin/ipc/               并发 JSON-RPC、取消、消息大小限制
 internal/plugin/runtime/           子进程、策略代理、启动与退出清理
 internal/binding/                  契约协商、实例绑定、创建回滚
-internal/scenario/                 场景版本、固定快照、导出
+internal/scenario/                 通用准备入口、场景版本、固定快照、导出
 internal/generation/               StrictReplay、AgentFill 与领取队列
 internal/run/                      后台测试任务、运行状态、停止
 internal/trace/                    请求事件与分页运行记录
@@ -69,8 +70,8 @@ plugins/left/mysql-wire/           MySQL 左端可执行插件
 plugins/right/mysql-mock/          MySQL 右端可执行插件
 internal/testkit/                  最小左右端进程插件和通用测试工具
 integration/                      跨进程、MCP、插件故障与回放测试
-examples/springboot-orders/        JDBC/Hikari 与 Spring Boot HTTP 样例
-examples/scenarios/                固定查询与待补全查询场景
+examples/springboot-shop/          JDBC/Hikari、Spring Boot HTTP 与浏览器购物样例
+examples/scenarios/                QA 资料、购物场景、参考实体待补全场景、驱动夹具
 scripts/                          构建、打包、验收入口
 docs/compatibility/                实测组合、宿主轨迹与已知范围
 ```
@@ -84,16 +85,18 @@ docs/compatibility/                实测组合、宿主轨迹与已知范围
 1. 安装只导入插件包；启用允许创建实例；创建 binding 才启动左右端和监听端口。停用和卸载遇到活动实例返回 PLUGIN_IN_USE。
 2. 右端先就绪，左端再监听；任一步失败则创建环境整体回滚。不同 binding 的进程与状态隔离。
 3. 请求按不可变 binding 路由；校验插件 API、契约版本与能力交集，不按数据库名称编写核心 switch。
-4. MySQL P0 只支持已声明的读取行为、必要的连接设置和确定性的系统元数据；DDL、写入、显式事务返回未支持。
+4. MySQL P0 的 QA 要求归右端插件；Agent 提议数据与映射，插件从 SQL AST/DDL 编译有限执行计划。购物车由应用真实写请求更新；提交、回滚、主键和影响行数反映实际状态。运行时 DDL 与未支持 SQL 明确失败。
 5. 自动验收使用短超时；人工 Agent 探索配置 request_timeout_ms=120000、lease_ms=60000，MCP 单次拉取最多等待 2000ms。剩余时限不足时不接受新的领取或回填。
 6. request_id、lease_token、continuation_token 都使用不可预测标识；结果校验通过后仍需右端 Complete，候选数据不能直通左端。
 7. scenario_version、插件版本、包摘要、schema/contract 版本在创建环境时固定；运行中不切换到新版本。
 8. 回归失败以测试退出码、未匹配请求、协议错误和预期调用数量共同判断。模型不能修改正在执行的测试断言。
+9. API 预期供测试断言，MySQL 行集/OK 由左端 3306 编码；不能直接将预期 HTTP JSON 回给 JDBC。核心和右端均不启动真实 MySQL 或替代数据库。
+10. 场景导出保留原始空购物车与 SQL 状态规则；仅将已确认的参考实体缺口物化到初始状态，不把写入终态固化为静态响应。
 
 ## 执行顺序与提交边界
 
 - [ ] 执行 P0A 的 A1–A6，每个任务完成其失败验证、实现、成功验证与一次聚焦提交。
-- [ ] 执行 P0B 的 B1–B4，先证明列元数据与驱动行为，再连接 Agent。
+- [ ] 执行 P0B 的 B1–B6，先锁定输入、编译和状态规则，再证明协议及真实驱动行为。
 - [ ] 执行 P0C 的 C1–C6，自动化验证通过后再做真实宿主验收。
 - [ ] 按下面的覆盖表逐项填写证据路径；只有全部必要项目通过才标记 P0 完成。
 
@@ -107,10 +110,12 @@ docs/compatibility/                实测组合、宿主轨迹与已知范围
 | 两端独立安装/启停/卸载 | A3、A6 | catalog 生命周期与真实插件测试 |
 | 跨进程注册、协议协商、路由 | A2、A4、A5、A6 | 两端契约不匹配、并发响应和取消测试 |
 | 端口冲突、启动回滚、崩溃隔离 | A5、A6、C3 | 故障测试及无残留进程/监听器断言 |
-| MySQL 驱动、探活、文本查询 | B1、B2、B3、B4 | 固定 JDK/JDBC/Hikari 测试 |
-| server prepare 与类型元数据 | B1、B3、B4 | prepare 元数据、执行结果、NULL/空集/错误测试 |
-| 场景版本、固定回放、错误查询失败 | B2、C1、C5 | 相同快照重复回放、参数变化负例 |
-| 领取、回填、过期、重复、断连 | C2、B3、C5 | fake clock、竞态与 TCP 断连测试 |
+| QA 必填资料、自然语言与代码/DDL 编译 | A2、B2、C1、C4、C6 | 缺口/歧义报告、证据摘要、候选编译及双宿主产物 |
+| MySQL 驱动、探活、文本查询 | B1、B3、B5、B6 | 固定 JDK/JDBC/Hikari 测试 |
+| server prepare 与类型元数据 | B1、B5、B6 | prepare 元数据、执行结果、NULL/空集/错误测试 |
+| 写后读、生成键、提交/回滚、用户隔离 | B3、B4、B6、C5 | 真实 DML、两连接事务和浏览器购物断言 |
+| 场景版本、固定回放、错误查询失败 | B2、B3、C1、C5 | 干净初态重复回放、参数/SQL/缺写入负例 |
+| 领取、回填、过期、重复、断连 | C2、B5、C5 | fake clock、竞态与 TCP 断连测试 |
 | 后台运行，不让 Agent 与测试互相等待 | C3、C5 | run_start 立即返回，之后可 resolve |
 | MCP HTTP 和 stdio 共用 daemon | C4、C5 | MCP 旧/新协议及桥接实例计数 |
 | Codex 和 Claude Code 实际协作 | C6 | 各一份实际宿主轨迹与版本记录 |
@@ -118,6 +123,6 @@ docs/compatibility/                实测组合、宿主轨迹与已知范围
 
 ## 完成标准
 
-P0 的演示顺序固定为：安装左右端 → 启用 → 导入场景 → 创建 binding → 启动后台测试 → 获取缺少数据的查询 → 回填 → 应用断言通过 → 导出场景 → 新环境离线回放 → 销毁环境 → 停用并卸载。
+P0 的演示顺序固定为：安装左右端 → 启用 → 读取 QA 输入要求 → 分析自然语言/代码/DDL → prepare 候选并保存场景 → 创建 binding → 后台执行浏览器购物流程 → 补全允许的参考实体缺口 → HTTP/UI/状态断言通过 → 导出 → 从空购物车在新环境离线回放 → 销毁 → 分别停用并卸载。
 
 自动测试输出保存到 `artifacts/p0/`；宿主验收摘要写到 `docs/compatibility/p0.md`。实际运行记录会包含具体耗时与版本，计划中的命令和断言不作为运行成功的证据。
