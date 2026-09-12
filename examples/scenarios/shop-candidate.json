@@ -173,7 +173,7 @@
     {
       "path": "examples/springboot-shop/src/main/java/local/xmock/ShopRepository.java",
       "kind": "code",
-      "sha256": "a7d6785c11c695f2d49904c44ae53722a36fb026f037c763eb67ad7cdc9598a4"
+      "sha256": "d589becc1ecce7e862cdf91fd8184cac48fe415b18530f6ac732f4ca6b06b6a7"
     },
     {
       "path": "examples/springboot-shop/src/main/java/local/xmock/TestIdentity.java",
@@ -181,14 +181,49 @@
       "sha256": "f919bd926a6c2d6584bcf6e14f46a52185e839a01e411c47513c341159f17b54"
     },
     {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/plus/CartMapper.java",
+      "kind": "code",
+      "sha256": "c1d047050f8ee9d20d9e85af38727fe49642ee7f642f1df2b76d5d34d3489c50"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartController.java",
+      "kind": "code",
+      "sha256": "55a33482bc83470f8284e8595fa8fd67ec216299e9a3dc5da8f7e9816cc4597f"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartItem.java",
+      "kind": "code",
+      "sha256": "698ea8e104c2cab7d896f7660b491b9c9b6cebe9b4fd017086aa3ce9068b98bf"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusProduct.java",
+      "kind": "code",
+      "sha256": "f936262419d6f84cfdff29dd8669a1a86f5276d15f05185fa117264668a53cde"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusShopRepository.java",
+      "kind": "code",
+      "sha256": "9aa8f1ce80cabd6ed17d19e3ccda995c7b9229b25b43f54e51885852e0536234"
+    },
+    {
+      "path": "examples/springboot-shop/src/main/java/local/xmock/plus/ProductMapper.java",
+      "kind": "code",
+      "sha256": "e2161bbf4725519b65fd97347be956982556b44eb96ad2b57087455e484ff2a8"
+    },
+    {
       "path": "examples/springboot-shop/src/main/resources/application-mock.properties",
       "kind": "code",
       "sha256": "5eda128c9f6f34b86df265455bf9c03964a0e550d36db40ac90e62510d83ffbe"
     },
     {
+      "path": "examples/springboot-shop/src/main/resources/application-mybatis-plus.properties",
+      "kind": "code",
+      "sha256": "dbd4df114ce09b702d9089067a944ab45425f53dd19b6c471421106f13fefe2a"
+    },
+    {
       "path": "examples/springboot-shop/src/main/resources/application-mybatis.properties",
       "kind": "code",
-      "sha256": "97d10f43f06321e329e9ba489748715b0bc6c8f3fc8754a7902131eded9aac02"
+      "sha256": "ed3cd6068a9ff01972ea2d588e6edb94ec739f29fa5350acc6f3834dbb84173d"
     },
     {
       "path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",

@@ -1,14 +1,14 @@
 {
   "qa_contract": {
-    "id": "shopping",
-    "goal": "浏览商品并重复加入购物车，验证用户隔离",
-    "natural_language": "# MySQL 场景资料：QA 填写模板\n\n本模板随 `mysql-mock` 右端策略提供。可以直接写自然语言，无需填写 SQL 或数据库报文。字段含义由 `mysql-mock` 提供的 QA schema 与 guide 定义。该模板对应已实现的 `mock_scenario_prepare` 输入流程。\n\n## 可复制的填写提纲\n\n1. 用例名称、要验证的业务目标。\n2. 起始页面、用户角色、是否登录；涉及多用户/多租户时说明身份关系。\n3. 初始条件：需要哪些商品/订单、是否上架、库存状态、购物车是否为空。\n4. 按顺序写每步“做什么、输入什么、期望看到什么”。\n5. 哪些值必须固定，哪些可以让 AI 生成；金额单位、币种、数量与边界条件。\n6. 涉及写入时说明后续查询、重复操作、是否扣库存等业务规则。\n7. 本次覆盖的异常分支，以及明确不覆盖的分支。\n8. 是否接受默认重置：每个独立用例新环境，同一用例各步骤共享状态。\n\n业务规则不明确时标为“需澄清”，不要为了填满模板自行猜测。代码路径、DDL 位置和测试命令由接入方补充，Agent 负责分析实现细节。\n\n## 已填写示例：浏览商品并加入购物车\n\n**目标：** 普通用户能从首页找到商品，查看详情，并将同一商品累计加入自己的购物车。\n\n**角色与起点：** 从首页开始，用户 U1 已登录。另有用户 U2，用于验证购物车隔离。登录方式使用样例工程提供的测试身份配置，本用例不验证真实登录服务。\n\n**初始条件：** 有一件商品 P1 已上架，名为“测试键盘”，价格 99 元人民币，库存 10。U1 和 U2 的购物车都为空。商品 ID、用户 ID 可由 AI 分配，但所有步骤必须保持一致。\n\n| 步骤 | 操作 | 必须看到的结果 |\n| --- | --- | --- |\n| S1 | 打开首页 | 显示测试键盘，价格 99 元 |\n| S2 | 点击测试键盘 | 详情展示同一名称、同一价格、库存 10，可以加入购物车 |\n| S3 | 数量选择 1，点击加入购物车 | 提示加入成功；返回的购物车记录有稳定标识 |\n| S4 | 打开购物车 | 只有一条测试键盘，数量 1，合计 99 元 |\n| S5 | 返回商品详情，再加入 1 件，然后查看购物车 | 仍是一条商品记录，记录标识相同，数量 2，合计 198 元 |\n| S6 | 使用 U2 打开购物车 | 购物车为空，不出现 U1 加入的商品 |\n\n**固定业务规则：** 重复加入累计数量，不新建第二条同商品记录。加入购物车不扣库存；本用例结束商品库存仍为 10。金额显示两位小数或等价本地货币格式均可，数值必须准确。\n\n**允许生成：** 内部数字 ID 和不影响本用例的商品附加描述。不得修改商品名称、单价、数量、用户归属、库存和上述预期来配合当前代码输出。\n\n**覆盖范围：** 包含重复加入、再次查询、多用户隔离。下架商品、库存不足、数量非法、登录失败另立用例；事务回滚与并发冲突另由插件/驱动验收覆盖。\n\n**重置：** 每次完整运行从空购物车开始；S1–S6 共用一次运行的状态。\n\n## 接入方与 Agent 补充的技术资料\n\n下表由开发者/接入方提供引用，Agent 据此分析，不要求 QA 手写。\n\n| 资料 | 必须确定的内容 |\n| --- | --- |\n| 仓库与版本 | 项目目录、commit 或工作区文件摘要；前端和后端分别位于哪里 |\n| 表结构 | 最终 DDL，或能离线还原最终结构的迁移文件；业务枚举与金额单位 |\n| 应用链路 | 前端入口、API、Controller/Service、Repository/Mapper、DTO、事务注解和配置 |\n| 测试配置 | Spring profile、JDK/JDBC 版本、测试身份来源、MySQL 连接配置位置 |\n| 启动与验收 | 具名后台任务及参数、浏览器测试入口、预期启动时限 |\n| 其他依赖 | 此流程是否访问 Redis、Kafka 或外部登录服务；相应插件或明确的测试配置 |\n\nAgent 输出应包含“步骤 → API → 代码证据 → SQL → 依赖数据/状态 → 断言”的对照表、资料缺口、能力缺口和候选场景包。仅凭这个业务示例不能生成声称适配真实工程的最终 SQL；先读取该工程的代码与 DDL。\n",
+    "id": "shopping-delete",
+    "goal": "购物后验证归属限制、真实删除和重复删除",
+    "natural_language": "# 加入并移除购物车（独立 E2E）\n\n普通用户 U1=2001 从首页开始，另有 U2=2002 验证用户隔离。商品 P1=1001 已上架，名称“测试键盘”，单价99元人民币，库存10；两个用户购物车均为空。\n\n1. U1 打开首页，看到测试键盘，价格99元。\n2. 点击商品，详情展示相同名称、价格和库存10。\n3. 加入1件，返回201，有稳定购物车记录标识5001，数量1。\n4. 打开购物车，只有一条记录，数量1，合计99元。\n5. 再加入1件，返回200，记录标识相同，数量2，合计198元。\n6. U2 查看购物车，应为空；商品库存仍为10。\n7. U2 请求移除U1的记录5001，返回404。U1的购物车仍有一条记录、数量2。\n8. U1 移除自己的记录5001，返回204。再次查看购物车为空，合计0。\n9. U1 再移除同一记录，返回404。商品详情仍存在、库存仍为10。\n\n前六步沿用购物场景的全部预期，本独立用例增加真实删除和重复删除。结束时两个用户购物车都为空、商品仍存在。每次运行创建新环境；上述步骤共享状态。不得预装购物车终态，不得将删除请求直接替换成HTTP成功响应。名称、价格、数量、用户归属、库存和预期固定；不配置额外模型API。业务流程异常、并发和底层事务回滚由独立验收覆盖。\n",
     "start_page": "/",
     "role": "U1=2001 已登录；U2=2002 已登录",
     "initial_state": "P1=1001 已上架，测试键盘，99 元，库存10；两个用户购物车为空",
     "data_policy": "QA 名称、价格、库存和预期固定；使用约定的内部 ID",
-    "write_rules": "重复加入累计数量并保留同一记录；不扣库存",
-    "coverage": "首页、详情、首次与重复加入、购物车、多用户；异常及并发另测",
+    "write_rules": "重复加入累计数量并保留同一记录；不扣库存；仅本人能删除购物车记录，重复删除404，商品保留",
+    "coverage": "首页、详情、首次与重复加入、购物车、多用户；异常及并发另测；删除、删除后的查询、重复删除和用户隔离",
     "steps": [
       {
         "id": "S1",
@@ -39,6 +39,21 @@
         "id": "S6",
         "action": "U2 查看购物车",
         "expected": "为空，不含 U1 商品"
+      },
+      {
+        "id": "S7",
+        "action": "U2 删除 U1 记录",
+        "expected": "404；U1 的一条记录数量仍为2"
+      },
+      {
+        "id": "S8",
+        "action": "U1 删除本人记录并查询购物车",
+        "expected": "204；购物车为空，合计0"
+      },
+      {
+        "id": "S9",
+        "action": "U1 再删除并查询商品详情",
+        "expected": "404；商品仍存在，库存10"
       }
     ],
     "fixed": {
@@ -57,36 +72,7 @@
     "final_assertions": [
       {
         "table": "cart_items",
-        "where": {
-          "user_id": {
-            "type": "BIGINT",
-            "value": "2001"
-          }
-        },
-        "count": 1,
-        "fields": {
-          "id": {
-            "type": "BIGINT",
-            "value": "5001"
-          },
-          "product_id": {
-            "type": "BIGINT",
-            "value": "1001"
-          },
-          "quantity": {
-            "type": "BIGINT",
-            "value": "2"
-          }
-        }
-      },
-      {
-        "table": "cart_items",
-        "where": {
-          "user_id": {
-            "type": "BIGINT",
-            "value": "2002"
-          }
-        },
+        "where": {},
         "count": 0
       },
       {
@@ -124,11 +110,6 @@
       "path": "examples/springboot-shop/schema.sql",
       "kind": "ddl",
       "sha256": "8ea1b10dd87dfac4aa548bea6f6cc7b100bc675161aefa665f53ed1661fc6c71"
-    },
-    {
-      "path": "examples/scenarios/shop.qa.md",
-      "kind": "qa",
-      "sha256": "45dea2ccd2f3e2888b36f2e807d2833b224d4e0fa7f6ce2980323c960a98f7d8"
     },
     {
       "path": "examples/springboot-shop/src/main/java/local/xmock/CartController.java",
@@ -299,6 +280,11 @@
       "path": "examples/springboot-shop/src/test/java/local/xmock/TransactionContractTest.java",
       "kind": "test",
       "sha256": "1b1ab7d251ba555f65bc12bfa505da07a8028e8fb296e20438e9cbc837d154da"
+    },
+    {
+      "path": "examples/scenarios/plus-delete.qa.md",
+      "kind": "qa",
+      "sha256": "e3cd5222422acc581e24683e3552b80e113710e22411b11c632ad5ca130835f8"
     }
   ],
   "step_bindings": [
@@ -344,6 +330,7 @@
       "statements": [
         "product-detail",
         "find-cart-item",
+        "cart-by-user-id",
         "increment-cart",
         "list-cart"
       ]
@@ -354,6 +341,36 @@
       "source_path": "examples/springboot-shop/src/main/java/local/xmock/CartController.java",
       "statements": [
         "list-cart"
+      ]
+    },
+    {
+      "step_id": "S7",
+      "api": "DELETE /api/cart/items/5001",
+      "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartController.java",
+      "statements": [
+        "delete-cart",
+        "list-cart",
+        "product-detail"
+      ]
+    },
+    {
+      "step_id": "S8",
+      "api": "DELETE /api/cart/items/5001",
+      "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartController.java",
+      "statements": [
+        "delete-cart",
+        "list-cart",
+        "product-detail"
+      ]
+    },
+    {
+      "step_id": "S9",
+      "api": "DELETE /api/cart/items/5001",
+      "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartController.java",
+      "statements": [
+        "delete-cart",
+        "list-cart",
+        "product-detail"
       ]
     }
   ],
@@ -410,6 +427,33 @@
       "status": 200,
       "assertions": {
         "qa_expected": "为空，不含 U1 商品"
+      }
+    },
+    {
+      "step_id": "S7",
+      "method": "DELETE",
+      "path": "/api/cart/items/5001",
+      "status": 404,
+      "assertions": {
+        "qa_expected": "404；U1 的一条记录数量仍为2"
+      }
+    },
+    {
+      "step_id": "S8",
+      "method": "DELETE",
+      "path": "/api/cart/items/5001",
+      "status": 204,
+      "assertions": {
+        "qa_expected": "204；购物车为空，合计0"
+      }
+    },
+    {
+      "step_id": "S9",
+      "method": "DELETE",
+      "path": "/api/cart/items/5001",
+      "status": 404,
+      "assertions": {
+        "qa_expected": "404；商品仍存在，库存10"
       }
     }
   ],
@@ -472,11 +516,11 @@
     "statements": [
       {
         "id": "list-products",
-        "sql": "SELECT id, name, price_cents, stock, status FROM products WHERE status = ? ORDER BY id",
-        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "sql": "SELECT id,name,price_cents,stock,status FROM products WHERE (status = ?) ORDER BY id ASC",
+        "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusShopRepository.java",
         "parameters": [
           {
-            "name": "status",
+            "name": "ew.paramNameValuePairs.MPGENVAL1",
             "type": "VARCHAR",
             "nullable": false,
             "allowed": [
@@ -488,15 +532,23 @@
           }
         ],
         "source": {
-          "strategy": "mybatis-xml",
-          "namespace": "local.xmock.ShopMapper",
-          "statement_id": "products"
+          "strategy": "mybatis-plus",
+          "namespace": "local.xmock.plus.ProductMapper",
+          "statement_id": "selectList",
+          "mybatis_plus": {
+            "entity_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusProduct.java",
+            "mapper_path": "examples/springboot-shop/src/main/java/local/xmock/plus/ProductMapper.java",
+            "call_method": "products",
+            "version": "3.5.17",
+            "build_path": "examples/springboot-shop/pom.xml",
+            "config_path": "examples/springboot-shop/src/main/resources/application-mybatis-plus.properties"
+          }
         }
       },
       {
         "id": "product-detail",
-        "sql": "SELECT id, name, price_cents, stock, status FROM products WHERE id = ?",
-        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "sql": "SELECT id,name,price_cents,stock,status FROM products WHERE id=?",
+        "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusShopRepository.java",
         "parameters": [
           {
             "name": "id",
@@ -511,18 +563,26 @@
           }
         ],
         "source": {
-          "strategy": "mybatis-xml",
-          "namespace": "local.xmock.ShopMapper",
-          "statement_id": "product"
+          "strategy": "mybatis-plus",
+          "namespace": "local.xmock.plus.ProductMapper",
+          "statement_id": "selectById",
+          "mybatis_plus": {
+            "entity_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusProduct.java",
+            "mapper_path": "examples/springboot-shop/src/main/java/local/xmock/plus/ProductMapper.java",
+            "call_method": "product",
+            "version": "3.5.17",
+            "build_path": "examples/springboot-shop/pom.xml",
+            "config_path": "examples/springboot-shop/src/main/resources/application-mybatis-plus.properties"
+          }
         }
       },
       {
         "id": "find-cart-item",
-        "sql": "SELECT id, user_id, product_id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?",
-        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "sql": "SELECT id,user_id,product_id,quantity FROM cart_items WHERE (user_id = ? AND product_id = ?)",
+        "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusShopRepository.java",
         "parameters": [
           {
-            "name": "userId",
+            "name": "ew.paramNameValuePairs.MPGENVAL1",
             "type": "BIGINT",
             "nullable": false,
             "allowed": [
@@ -537,7 +597,7 @@
             ]
           },
           {
-            "name": "productId",
+            "name": "ew.paramNameValuePairs.MPGENVAL2",
             "type": "BIGINT",
             "nullable": false,
             "allowed": [
@@ -549,18 +609,26 @@
           }
         ],
         "source": {
-          "strategy": "mybatis-xml",
-          "namespace": "local.xmock.ShopMapper",
-          "statement_id": "item"
+          "strategy": "mybatis-plus",
+          "namespace": "local.xmock.plus.CartMapper",
+          "statement_id": "selectOne",
+          "mybatis_plus": {
+            "entity_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartItem.java",
+            "mapper_path": "examples/springboot-shop/src/main/java/local/xmock/plus/CartMapper.java",
+            "call_method": "item",
+            "version": "3.5.17",
+            "build_path": "examples/springboot-shop/pom.xml",
+            "config_path": "examples/springboot-shop/src/main/resources/application-mybatis-plus.properties"
+          }
         }
       },
       {
         "id": "list-cart",
-        "sql": "SELECT id, user_id, product_id, quantity FROM cart_items WHERE user_id = ? ORDER BY id",
-        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "sql": "SELECT id,user_id,product_id,quantity FROM cart_items WHERE (user_id = ?) ORDER BY id ASC",
+        "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusShopRepository.java",
         "parameters": [
           {
-            "name": "userId",
+            "name": "ew.paramNameValuePairs.MPGENVAL1",
             "type": "BIGINT",
             "nullable": false,
             "allowed": [
@@ -576,15 +644,23 @@
           }
         ],
         "source": {
-          "strategy": "mybatis-xml",
-          "namespace": "local.xmock.ShopMapper",
-          "statement_id": "cart"
+          "strategy": "mybatis-plus",
+          "namespace": "local.xmock.plus.CartMapper",
+          "statement_id": "selectList",
+          "mybatis_plus": {
+            "entity_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartItem.java",
+            "mapper_path": "examples/springboot-shop/src/main/java/local/xmock/plus/CartMapper.java",
+            "call_method": "cart",
+            "version": "3.5.17",
+            "build_path": "examples/springboot-shop/pom.xml",
+            "config_path": "examples/springboot-shop/src/main/resources/application-mybatis-plus.properties"
+          }
         }
       },
       {
         "id": "insert-cart",
-        "sql": "INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)",
-        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "sql": "INSERT INTO cart_items ( user_id, product_id, quantity ) VALUES ( ?, ?, ? )",
+        "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusShopRepository.java",
         "parameters": [
           {
             "name": "userId",
@@ -621,29 +697,94 @@
           }
         ],
         "source": {
-          "strategy": "mybatis-xml",
-          "namespace": "local.xmock.ShopMapper",
-          "statement_id": "insert"
+          "strategy": "mybatis-plus",
+          "namespace": "local.xmock.plus.CartMapper",
+          "statement_id": "insert",
+          "mybatis_plus": {
+            "entity_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartItem.java",
+            "mapper_path": "examples/springboot-shop/src/main/java/local/xmock/plus/CartMapper.java",
+            "call_method": "insert",
+            "version": "3.5.17",
+            "build_path": "examples/springboot-shop/pom.xml",
+            "config_path": "examples/springboot-shop/src/main/resources/application-mybatis-plus.properties"
+          }
         }
       },
       {
         "id": "increment-cart",
-        "sql": "UPDATE cart_items SET quantity = quantity + ? WHERE id = ? AND user_id = ?",
-        "source_path": "examples/springboot-shop/src/main/resources/mappers/ShopMapper.xml",
+        "sql": "UPDATE cart_items SET user_id=?, product_id=?, quantity=? WHERE id=?",
+        "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusShopRepository.java",
         "parameters": [
           {
-            "name": "quantity",
+            "name": "et.userId",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "2001"
+              }
+            ]
+          },
+          {
+            "name": "et.productId",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1001"
+              }
+            ]
+          },
+          {
+            "name": "et.quantity",
             "type": "BIGINT",
             "nullable": false,
             "allowed": [
               {
                 "type": "BIGINT",
                 "value": "1"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2"
               }
             ]
           },
           {
-            "name": "id",
+            "name": "et.id",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "5001"
+              }
+            ]
+          }
+        ],
+        "source": {
+          "strategy": "mybatis-plus",
+          "namespace": "local.xmock.plus.CartMapper",
+          "statement_id": "updateById",
+          "mybatis_plus": {
+            "entity_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartItem.java",
+            "mapper_path": "examples/springboot-shop/src/main/java/local/xmock/plus/CartMapper.java",
+            "call_method": "increment",
+            "version": "3.5.17",
+            "build_path": "examples/springboot-shop/pom.xml",
+            "config_path": "examples/springboot-shop/src/main/resources/application-mybatis-plus.properties"
+          }
+        }
+      },
+      {
+        "id": "cart-by-user-id",
+        "sql": "SELECT id,user_id,product_id,quantity FROM cart_items WHERE (id = ? AND user_id = ?)",
+        "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusShopRepository.java",
+        "parameters": [
+          {
+            "name": "ew.paramNameValuePairs.MPGENVAL1",
             "type": "BIGINT",
             "nullable": false,
             "allowed": [
@@ -654,21 +795,79 @@
             ]
           },
           {
-            "name": "userId",
+            "name": "ew.paramNameValuePairs.MPGENVAL2",
             "type": "BIGINT",
             "nullable": false,
             "allowed": [
               {
                 "type": "BIGINT",
                 "value": "2001"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2002"
               }
             ]
           }
         ],
         "source": {
-          "strategy": "mybatis-xml",
-          "namespace": "local.xmock.ShopMapper",
-          "statement_id": "increment"
+          "strategy": "mybatis-plus",
+          "namespace": "local.xmock.plus.CartMapper",
+          "statement_id": "selectOne",
+          "mybatis_plus": {
+            "entity_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartItem.java",
+            "mapper_path": "examples/springboot-shop/src/main/java/local/xmock/plus/CartMapper.java",
+            "call_method": "increment",
+            "version": "3.5.17",
+            "build_path": "examples/springboot-shop/pom.xml",
+            "config_path": "examples/springboot-shop/src/main/resources/application-mybatis-plus.properties"
+          }
+        }
+      },
+      {
+        "id": "delete-cart",
+        "sql": "DELETE FROM cart_items WHERE (id = ? AND user_id = ?)",
+        "source_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusShopRepository.java",
+        "parameters": [
+          {
+            "name": "ew.paramNameValuePairs.MPGENVAL1",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "5001"
+              }
+            ]
+          },
+          {
+            "name": "ew.paramNameValuePairs.MPGENVAL2",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "2001"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2002"
+              }
+            ]
+          }
+        ],
+        "source": {
+          "strategy": "mybatis-plus",
+          "namespace": "local.xmock.plus.CartMapper",
+          "statement_id": "delete",
+          "mybatis_plus": {
+            "entity_path": "examples/springboot-shop/src/main/java/local/xmock/plus/PlusCartItem.java",
+            "mapper_path": "examples/springboot-shop/src/main/java/local/xmock/plus/CartMapper.java",
+            "call_method": "removeForUser",
+            "version": "3.5.17",
+            "build_path": "examples/springboot-shop/pom.xml",
+            "config_path": "examples/springboot-shop/src/main/resources/application-mybatis-plus.properties"
+          }
         }
       }
     ],
@@ -694,41 +893,20 @@
       "product-detail": {
         "min": 5,
         "max": 20
+      },
+      "cart-by-user-id": {
+        "min": 1,
+        "max": 1
+      },
+      "delete-cart": {
+        "min": 3,
+        "max": 3
       }
     },
     "final_state": [
       {
         "table": "cart_items",
-        "where": {
-          "user_id": {
-            "type": "BIGINT",
-            "value": "2001"
-          }
-        },
-        "count": 1,
-        "fields": {
-          "id": {
-            "type": "BIGINT",
-            "value": "5001"
-          },
-          "product_id": {
-            "type": "BIGINT",
-            "value": "1001"
-          },
-          "quantity": {
-            "type": "BIGINT",
-            "value": "2"
-          }
-        }
-      },
-      {
-        "table": "cart_items",
-        "where": {
-          "user_id": {
-            "type": "BIGINT",
-            "value": "2002"
-          }
-        },
+        "where": {},
         "count": 0
       },
       {
@@ -900,12 +1078,8 @@
       "connection": "preview"
     },
     {
-      "statement_id": "increment-cart",
+      "statement_id": "cart-by-user-id",
       "params": [
-        {
-          "type": "BIGINT",
-          "value": "1"
-        },
         {
           "type": "BIGINT",
           "value": "5001"
@@ -913,6 +1087,28 @@
         {
           "type": "BIGINT",
           "value": "2001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "increment-cart",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "1001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "2"
+        },
+        {
+          "type": "BIGINT",
+          "value": "5001"
         }
       ],
       "connection": "preview"
@@ -961,6 +1157,102 @@
         {
           "type": "BIGINT",
           "value": "2002"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "control": "BEGIN",
+      "connection": "preview"
+    },
+    {
+      "statement_id": "delete-cart",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "5001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "2002"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "control": "COMMIT",
+      "connection": "preview"
+    },
+    {
+      "statement_id": "list-cart",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "control": "BEGIN",
+      "connection": "preview"
+    },
+    {
+      "statement_id": "delete-cart",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "5001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "control": "COMMIT",
+      "connection": "preview"
+    },
+    {
+      "control": "BEGIN",
+      "connection": "preview"
+    },
+    {
+      "statement_id": "delete-cart",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "5001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "control": "COMMIT",
+      "connection": "preview"
+    },
+    {
+      "statement_id": "list-cart",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "product-detail",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "1001"
         }
       ],
       "connection": "preview"

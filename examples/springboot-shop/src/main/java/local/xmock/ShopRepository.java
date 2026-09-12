@@ -7,7 +7,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 @Repository
-@org.springframework.context.annotation.Profile("!mybatis")
+@org.springframework.context.annotation.Profile("!mybatis & !mybatis-plus")
 public class ShopRepository implements ShopDataAccess {
  public record Product(long id,String name,long priceCents,long stock,String status){}
  public record CartItem(long id,long userId,long productId,long quantity){}
