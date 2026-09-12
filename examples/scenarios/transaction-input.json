@@ -1,0 +1,33 @@
+{
+  "qa": {
+    "id": "transaction",
+    "goal": "真实 JDBC 类型与事务契约",
+    "natural_language": "通过实际驱动验证大整数、NULL、空集。事务写入本连接可见，提交后其他连接可见，回滚不泄漏，并发提交冲突失败。",
+    "start_page": "JDBC 契约入口",
+    "role": "mock 测试用户",
+    "initial_state": "商品 1001 存在，购物车为空；驱动 orders 使用独立只读夹具",
+    "data_policy": "全部固定，无运行时生成",
+    "write_rules": "自增从 5001 开始，回滚允许空洞；更新累计数量；不扣库存",
+    "coverage": "只覆盖明示的 JDBC 调用",
+    "steps": [
+      {
+        "id": "S1",
+        "action": "执行真实 JDBC 契约",
+        "expected": "所有外部断言通过"
+      }
+    ],
+    "fixed": {}
+  },
+  "sources": [
+    {
+      "path": "examples/springboot-shop/schema.sql",
+      "kind": "ddl",
+      "sha256": "7a4d606e3ef5d995607d1fb403978a41e74bf30372497132135b0f8b57a8158f"
+    },
+    {
+      "path": "examples/springboot-shop/src/test/java/local/xmock/TransactionContractTest.java",
+      "kind": "code",
+      "sha256": "1b1ab7d251ba555f65bc12bfa505da07a8028e8fb296e20438e9cbc837d154da"
+    }
+  ]
+}
