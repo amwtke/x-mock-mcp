@@ -159,6 +159,9 @@ func (p *plugin) Prepare(ctx context.Context, spec pluginapi.PreparationSpec) (p
 	statements := map[string]bool{}
 	writtenTables := map[string]bool{}
 	for i, statement := range db.Statements {
+		if err := ctx.Err(); err != nil {
+			return report, err
+		}
 		if statement.ID == "" || statements[statement.ID] {
 			problem("statements", "规则 ID 为空或重复")
 			continue

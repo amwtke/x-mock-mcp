@@ -9,12 +9,22 @@ import (
 // StatementSource belongs to the MySQL right plugin, not the transport or core.
 // Omitting it preserves the original Java literal source contract.
 type StatementSource struct {
-	Strategy    string `json:"strategy"`
-	Namespace   string `json:"namespace,omitempty"`
-	StatementID string `json:"statement_id,omitempty"`
+	Strategy    string      `json:"strategy"`
+	Namespace   string      `json:"namespace,omitempty"`
+	StatementID string      `json:"statement_id,omitempty"`
+	Plus        *PlusSource `json:"mybatis_plus,omitempty"`
 }
 
-type sourceStrategy interface{ Validate(Statement, []byte) error }
+type PlusSource struct {
+	EntityPath string `json:"entity_path"`
+	MapperPath string `json:"mapper_path"`
+	CallMethod string `json:"call_method"`
+	Version    string `json:"version"`
+}
+
+type sourceStrategy interface {
+	Validate(Statement, map[string][]byte) error
+}
 
 var sourceStrategies = map[string]sourceStrategy{
 	"java-literal": javaLiteralSource{},
@@ -22,7 +32,7 @@ var sourceStrategies = map[string]sourceStrategy{
 }
 
 func validateStatementSource(statement Statement, files map[string][]byte) error {
-	code, exists := files[statement.SourcePath]
+	_, exists := files[statement.SourcePath]
 	if !exists {
 		return fmt.Errorf("SOURCE_EVIDENCE: source file was not verified")
 	}
@@ -34,7 +44,7 @@ func validateStatementSource(statement Statement, files map[string][]byte) error
 	if !exists {
 		return fmt.Errorf("SOURCE_EVIDENCE: unsupported strategy %q", name)
 	}
-	if err := strategy.Validate(statement, code); err != nil {
+	if err := strategy.Validate(statement, files); err != nil {
 		return fmt.Errorf("SOURCE_EVIDENCE: %s: %w", statement.ID, err)
 	}
 	return nil
@@ -42,11 +52,12 @@ func validateStatementSource(statement Statement, files map[string][]byte) error
 
 type javaLiteralSource struct{}
 
-func (javaLiteralSource) Validate(statement Statement, code []byte) error {
+func (javaLiteralSource) Validate(statement Statement, files map[string][]byte) error {
+	code := files[statement.SourcePath]
 	if filepath.Ext(statement.SourcePath) != ".java" {
 		return fmt.Errorf("java-literal requires .java source; Mapper XML requires mybatis-xml strategy")
 	}
-	if statement.Source != nil && (statement.Source.Namespace != "" || statement.Source.StatementID != "") {
+	if statement.Source != nil && (statement.Source.Namespace != "" || statement.Source.StatementID != "" || statement.Source.Plus != nil) {
 		return fmt.Errorf("java-literal does not accept Mapper identifiers")
 	}
 	if strings.TrimSpace(statement.SQL) == "" || !strings.Contains(strings.Join(strings.Fields(string(code)), " "), strings.Join(strings.Fields(statement.SQL), " ")) {

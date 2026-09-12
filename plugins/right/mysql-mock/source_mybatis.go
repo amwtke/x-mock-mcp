@@ -104,9 +104,10 @@ func readMapper(raw []byte) (*mapperNode, error) {
 	return root, nil
 }
 
-func (mybatisXMLSource) Validate(statement Statement, raw []byte) error {
+func (mybatisXMLSource) Validate(statement Statement, files map[string][]byte) error {
+	raw := files[statement.SourcePath]
 	source := statement.Source
-	if filepath.Ext(statement.SourcePath) != ".xml" || source == nil || !mapperProperty.MatchString(source.Namespace) || !mapperProperty.MatchString(source.StatementID) || strings.Contains(source.StatementID, ".") {
+	if filepath.Ext(statement.SourcePath) != ".xml" || source == nil || source.Plus != nil || !mapperProperty.MatchString(source.Namespace) || !mapperProperty.MatchString(source.StatementID) || strings.Contains(source.StatementID, ".") {
 		return fmt.Errorf("mybatis-xml requires .xml source, namespace and local statement_id")
 	}
 	root, err := readMapper(raw)
