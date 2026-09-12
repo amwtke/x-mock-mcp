@@ -1,0 +1,1124 @@
+{
+  "qa_contract": {
+    "id": "product-orders",
+    "goal": "查询商品、真实下单并验证库存与用户隔离",
+    "natural_language": "# 商品查询与下单 E2E\n\n目标：用户浏览商品并购买2件，订单真实写入、库存真实扣减，其他用户不可查看该订单。\n\n起点与身份：从首页开始。U1=2001、U2=2002使用测试身份请求头；不验证真实登录或支付。初始商品P1=1001，名称“测试键盘”，已上架，单价99元人民币，库存10。所有用户的订单为空，订单自增标识从9001开始。\n\n| 步骤 | 操作 | 固定预期 |\n| --- | --- | --- |\n| S1 | 打开首页查询商品 | 仅一件测试键盘，单价99元 |\n| S2 | 查看商品1001详情 | 名称、价格与列表一致，库存10 |\n| S3 | U1购买2件 | 返回201，订单9001，数量2、金额198元，状态CREATED |\n| S4 | U1查询订单9001和自己的订单列表 | 返回持久化到mock状态的同一订单，仅一条记录；商品库存8 |\n| S5 | U2查询订单9001及订单列表 | 单条查询404，列表为空，不泄露U1订单 |\n| S6 | U1购买99件、查询/购买不存在的9999商品，或数量0下单 | 库存不足409，商品不存在404，非法数量400；无新增订单，库存仍为8 |\n\n不带有效测试身份查询/提交订单必须401。浏览器执行S1–S4；真实HTTP测试额外验证S5–S6及401。两种测试各从新环境开始，不共享终态。\n\n业务规则：以商品当前单价计算金额，协议和API中的金额单位均为整数“分”；下单立即扣库存。库存扣减与订单INSERT在同一事务内完成，失败全部回滚。订单记录商品名、单价快照和用户归属。有限示例允许内部订单ID9001–9010、数量1–10、库存0–10，不任意改变上述用例的数量2和终态。没有付款、退款、取消订单或真实登录服务；并发采用等值库存检查和mock事务冲突检测，不声称完整生产数据库语义。\n\n固定初态：products一行，purchase_orders为空。固定终态：products/1001库存8，其余属性不变；U1恰好一张9001订单，数量2、金额19800分、状态CREATED；U2无订单。\n\nCoding Agent读取此QA、应用源码、配置与DDL后，经MCP提交候选。参考商品在场景准备时提供；订单和库存变化必须由应用SQL请求产生，不能预装订单或用HTTP成功响应代替。场景、源码摘要和两端插件版本均固定。每次独立运行重置状态，不安装/启动MySQL或替代数据库，不配置额外模型API。\n",
+    "start_page": "/",
+    "role": "U1=2001；U2=2002；X-Test-User-Id测试身份",
+    "initial_state": "P1=1001已上架，测试键盘99元库存10；订单为空",
+    "data_policy": "名称、价格、用户、数量、库存和断言固定；协议金额为BIGINT分",
+    "write_rules": "同一事务实际扣库存与INSERT订单；失败回滚；不涉及支付",
+    "coverage": "浏览器S1-S4；HTTP额外验证用户隔离、库存不足、非法数量、缺失商品和身份",
+    "steps": [
+      {
+        "id": "S1",
+        "action": "首页查询商品",
+        "expected": "测试键盘99元"
+      },
+      {
+        "id": "S2",
+        "action": "查看商品详情",
+        "expected": "库存10、价格99元"
+      },
+      {
+        "id": "S3",
+        "action": "U1购买2件",
+        "expected": "201、订单9001、数量2、198元、CREATED"
+      },
+      {
+        "id": "S4",
+        "action": "U1查询订单与库存",
+        "expected": "同一订单，库存8"
+      },
+      {
+        "id": "S5",
+        "action": "U2查询订单",
+        "expected": "详情404、列表为空"
+      },
+      {
+        "id": "S6",
+        "action": "库存不足或非法请求",
+        "expected": "409/404/400，订单仍一条，库存仍8"
+      }
+    ],
+    "fixed": {
+      "name": "测试键盘",
+      "price_cents": "9900",
+      "stock": "10",
+      "status": "ON_SALE"
+    },
+    "initial_assertions": [
+      {
+        "table": "purchase_orders",
+        "where": {},
+        "count": 0
+      }
+    ],
+    "final_assertions": [
+      {
+        "table": "products",
+        "where": {
+          "id": {
+            "type": "BIGINT",
+            "value": "1001"
+          }
+        },
+        "count": 1,
+        "fields": {
+          "id": {
+            "type": "BIGINT",
+            "value": "1001"
+          },
+          "name": {
+            "type": "VARCHAR",
+            "value": "测试键盘"
+          },
+          "price_cents": {
+            "type": "BIGINT",
+            "value": "9900"
+          },
+          "stock": {
+            "type": "BIGINT",
+            "value": "8"
+          },
+          "status": {
+            "type": "VARCHAR",
+            "value": "ON_SALE"
+          }
+        }
+      },
+      {
+        "table": "purchase_orders",
+        "where": {
+          "user_id": {
+            "type": "BIGINT",
+            "value": "2001"
+          }
+        },
+        "count": 1,
+        "fields": {
+          "id": {
+            "type": "BIGINT",
+            "value": "9001"
+          },
+          "product_id": {
+            "type": "BIGINT",
+            "value": "1001"
+          },
+          "product_name": {
+            "type": "VARCHAR",
+            "value": "测试键盘"
+          },
+          "price_cents": {
+            "type": "BIGINT",
+            "value": "9900"
+          },
+          "quantity": {
+            "type": "BIGINT",
+            "value": "2"
+          },
+          "total_cents": {
+            "type": "BIGINT",
+            "value": "19800"
+          },
+          "status": {
+            "type": "VARCHAR",
+            "value": "CREATED"
+          }
+        }
+      },
+      {
+        "table": "purchase_orders",
+        "where": {
+          "user_id": {
+            "type": "BIGINT",
+            "value": "2002"
+          }
+        },
+        "count": 0
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "example/springboot/mock/qa.md",
+      "kind": "qa",
+      "sha256": "eaaab1609e8967482e39123d0e0613b0912988317008b0eccd430b22a3295463"
+    },
+    {
+      "path": "example/springboot/mock/schema.sql",
+      "kind": "ddl",
+      "sha256": "199d5cf147ab4ad11de52ac0711a50ffad21ac412b2888b279b4bef237b1feb5"
+    },
+    {
+      "path": "example/springboot/pom.xml",
+      "kind": "config",
+      "sha256": "61449db5d15c119e5121fe385f28b939f36d8b0085cc7d360eabbe5a7aa2f91f"
+    },
+    {
+      "path": "example/springboot/src/main/java/local/xmock/order/ApiErrors.java",
+      "kind": "code",
+      "sha256": "32d80de852f65e697ce0738df29f6d6ec240a2162db6550befc5d49db8370301"
+    },
+    {
+      "path": "example/springboot/src/main/java/local/xmock/order/OrderApplication.java",
+      "kind": "code",
+      "sha256": "141461512635004eff515ecb59ffdb1ffc0892258c5c03d50bd96593cea9a821"
+    },
+    {
+      "path": "example/springboot/src/main/java/local/xmock/order/OrderController.java",
+      "kind": "code",
+      "sha256": "a9dc92a8e0a017b755e0cd678ad3ba81fcc4ffe2a089080e39a99b64aa23c543"
+    },
+    {
+      "path": "example/springboot/src/main/java/local/xmock/order/OrderRepository.java",
+      "kind": "code",
+      "sha256": "9fc20e05d0fc69a6ebff642a96a8da5123a9e40bb06708aa42d41b09c4c53c58"
+    },
+    {
+      "path": "example/springboot/src/main/java/local/xmock/order/OrderService.java",
+      "kind": "code",
+      "sha256": "b778e3301aaab05029745b910a201687dd8554cc5c017b30930118b199c89307"
+    },
+    {
+      "path": "example/springboot/src/main/java/local/xmock/order/Product.java",
+      "kind": "code",
+      "sha256": "878555edb87d49303c50690c4d7565caebf7561ff243bd48ae9e7cc792b7426e"
+    },
+    {
+      "path": "example/springboot/src/main/java/local/xmock/order/PurchaseOrder.java",
+      "kind": "code",
+      "sha256": "9d2bb4f92989931598ef3c903f4215050ebd22c216775b81ca98a65d79ebc2ed"
+    },
+    {
+      "path": "example/springboot/src/main/resources/application.properties",
+      "kind": "code",
+      "sha256": "a144bbc86035779738897b0f7bad88688827c0c09bf5eea0803fe8ca0f6feafb"
+    },
+    {
+      "path": "example/springboot/src/main/resources/static/app.js",
+      "kind": "code",
+      "sha256": "7d0193112391c06b45b85cc38e23f7d90e46cb8a13c5f57b797d6700d242807b"
+    },
+    {
+      "path": "example/springboot/src/main/resources/static/index.html",
+      "kind": "code",
+      "sha256": "015e58d51eec3427109bcb75560cd8713a4d310634177514c61b829089c2059e"
+    },
+    {
+      "path": "example/springboot/src/test/java/local/xmock/order/OrderBrowserTest.java",
+      "kind": "test",
+      "sha256": "1d74fdb201f133430c6c2a008e6a034bd38c81665f2cf2117b68d597a6ba7979"
+    },
+    {
+      "path": "example/springboot/src/test/java/local/xmock/order/OrderFlowTest.java",
+      "kind": "test",
+      "sha256": "c51c0a4ea61f8c014e3fda0286dd10b6e8fb095b4301ece248fc0cfedbf01285"
+    }
+  ],
+  "step_bindings": [
+    {
+      "step_id": "S1",
+      "api": "GET /api/products",
+      "source_path": "example/springboot/src/main/java/local/xmock/order/OrderController.java",
+      "statements": [
+        "list-products"
+      ]
+    },
+    {
+      "step_id": "S2",
+      "api": "GET /api/products/1001",
+      "source_path": "example/springboot/src/main/java/local/xmock/order/OrderController.java",
+      "statements": [
+        "product-detail"
+      ]
+    },
+    {
+      "step_id": "S3",
+      "api": "POST /api/orders",
+      "source_path": "example/springboot/src/main/java/local/xmock/order/OrderController.java",
+      "statements": [
+        "product-detail",
+        "reserve-stock",
+        "insert-order",
+        "order-detail"
+      ]
+    },
+    {
+      "step_id": "S4",
+      "api": "GET /api/orders/9001",
+      "source_path": "example/springboot/src/main/java/local/xmock/order/OrderController.java",
+      "statements": [
+        "order-detail",
+        "list-orders",
+        "product-detail"
+      ]
+    },
+    {
+      "step_id": "S5",
+      "api": "GET /api/orders/9001",
+      "source_path": "example/springboot/src/main/java/local/xmock/order/OrderController.java",
+      "statements": [
+        "order-detail",
+        "list-orders"
+      ]
+    },
+    {
+      "step_id": "S6",
+      "api": "POST /api/orders",
+      "source_path": "example/springboot/src/main/java/local/xmock/order/OrderController.java",
+      "statements": [
+        "product-detail"
+      ]
+    }
+  ],
+  "api_expectations": [
+    {
+      "step_id": "S1",
+      "method": "GET",
+      "path": "/api/products",
+      "status": 200,
+      "assertions": {
+        "qa_expected": "测试键盘99元"
+      }
+    },
+    {
+      "step_id": "S2",
+      "method": "GET",
+      "path": "/api/products/1001",
+      "status": 200,
+      "assertions": {
+        "qa_expected": "库存10、价格99元"
+      }
+    },
+    {
+      "step_id": "S3",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201,
+      "assertions": {
+        "qa_expected": "201、订单9001、数量2、198元、CREATED"
+      }
+    },
+    {
+      "step_id": "S4",
+      "method": "GET",
+      "path": "/api/orders/9001",
+      "status": 200,
+      "assertions": {
+        "qa_expected": "同一订单，库存8"
+      }
+    },
+    {
+      "step_id": "S5",
+      "method": "GET",
+      "path": "/api/orders/9001",
+      "status": 404,
+      "assertions": {
+        "qa_expected": "详情404、列表为空"
+      }
+    },
+    {
+      "step_id": "S6",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 409,
+      "assertions": {
+        "qa_expected": "409/404/400，订单仍一条，库存仍8"
+      }
+    }
+  ],
+  "data_bindings": [
+    {
+      "qa_key": "name",
+      "table": "products",
+      "key": "1001",
+      "column": "name"
+    },
+    {
+      "qa_key": "price_cents",
+      "table": "products",
+      "key": "1001",
+      "column": "price_cents"
+    },
+    {
+      "qa_key": "stock",
+      "table": "products",
+      "key": "1001",
+      "column": "stock"
+    },
+    {
+      "qa_key": "status",
+      "table": "products",
+      "key": "1001",
+      "column": "status"
+    }
+  ],
+  "database_scenario": {
+    "database": "app",
+    "mode": "stateful",
+    "initial": {
+      "products": [
+        {
+          "id": {
+            "type": "BIGINT",
+            "value": "1001"
+          },
+          "name": {
+            "type": "VARCHAR",
+            "value": "测试键盘"
+          },
+          "price_cents": {
+            "type": "BIGINT",
+            "value": "9900"
+          },
+          "stock": {
+            "type": "BIGINT",
+            "value": "10"
+          },
+          "status": {
+            "type": "VARCHAR",
+            "value": "ON_SALE"
+          }
+        }
+      ],
+      "purchase_orders": []
+    },
+    "statements": [
+      {
+        "id": "list-products",
+        "sql": "SELECT id, name, price_cents, stock, status FROM products WHERE status = ? ORDER BY id",
+        "source_path": "example/springboot/src/main/java/local/xmock/order/OrderRepository.java",
+        "parameters": [
+          {
+            "name": "p0",
+            "type": "VARCHAR",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "VARCHAR",
+                "value": "ON_SALE"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "product-detail",
+        "sql": "SELECT id, name, price_cents, stock, status FROM products WHERE id = ?",
+        "source_path": "example/springboot/src/main/java/local/xmock/order/OrderRepository.java",
+        "parameters": [
+          {
+            "name": "p0",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1001"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9999"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "list-orders",
+        "sql": "SELECT id, user_id, product_id, product_name, price_cents, quantity, total_cents, status FROM purchase_orders WHERE user_id = ? ORDER BY id",
+        "source_path": "example/springboot/src/main/java/local/xmock/order/OrderRepository.java",
+        "parameters": [
+          {
+            "name": "p0",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "2001"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2002"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "order-detail",
+        "sql": "SELECT id, user_id, product_id, product_name, price_cents, quantity, total_cents, status FROM purchase_orders WHERE id = ? AND user_id = ?",
+        "source_path": "example/springboot/src/main/java/local/xmock/order/OrderRepository.java",
+        "parameters": [
+          {
+            "name": "p0",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "9001"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9002"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9003"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9004"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9005"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9006"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9007"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9008"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9009"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9010"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9999"
+              }
+            ]
+          },
+          {
+            "name": "p1",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "2001"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2002"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reserve-stock",
+        "sql": "UPDATE products SET stock = ? WHERE id = ? AND stock = ?",
+        "source_path": "example/springboot/src/main/java/local/xmock/order/OrderRepository.java",
+        "parameters": [
+          {
+            "name": "p0",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "0"
+              },
+              {
+                "type": "BIGINT",
+                "value": "1"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2"
+              },
+              {
+                "type": "BIGINT",
+                "value": "3"
+              },
+              {
+                "type": "BIGINT",
+                "value": "4"
+              },
+              {
+                "type": "BIGINT",
+                "value": "5"
+              },
+              {
+                "type": "BIGINT",
+                "value": "6"
+              },
+              {
+                "type": "BIGINT",
+                "value": "7"
+              },
+              {
+                "type": "BIGINT",
+                "value": "8"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9"
+              },
+              {
+                "type": "BIGINT",
+                "value": "10"
+              }
+            ]
+          },
+          {
+            "name": "p1",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1001"
+              }
+            ]
+          },
+          {
+            "name": "p2",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "0"
+              },
+              {
+                "type": "BIGINT",
+                "value": "1"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2"
+              },
+              {
+                "type": "BIGINT",
+                "value": "3"
+              },
+              {
+                "type": "BIGINT",
+                "value": "4"
+              },
+              {
+                "type": "BIGINT",
+                "value": "5"
+              },
+              {
+                "type": "BIGINT",
+                "value": "6"
+              },
+              {
+                "type": "BIGINT",
+                "value": "7"
+              },
+              {
+                "type": "BIGINT",
+                "value": "8"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9"
+              },
+              {
+                "type": "BIGINT",
+                "value": "10"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "insert-order",
+        "sql": "INSERT INTO purchase_orders (user_id, product_id, product_name, price_cents, quantity, total_cents, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "source_path": "example/springboot/src/main/java/local/xmock/order/OrderRepository.java",
+        "parameters": [
+          {
+            "name": "p0",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "2001"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2002"
+              }
+            ]
+          },
+          {
+            "name": "p1",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1001"
+              }
+            ]
+          },
+          {
+            "name": "p2",
+            "type": "VARCHAR",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "VARCHAR",
+                "value": "测试键盘"
+              }
+            ]
+          },
+          {
+            "name": "p3",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "9900"
+              }
+            ]
+          },
+          {
+            "name": "p4",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "1"
+              },
+              {
+                "type": "BIGINT",
+                "value": "2"
+              },
+              {
+                "type": "BIGINT",
+                "value": "3"
+              },
+              {
+                "type": "BIGINT",
+                "value": "4"
+              },
+              {
+                "type": "BIGINT",
+                "value": "5"
+              },
+              {
+                "type": "BIGINT",
+                "value": "6"
+              },
+              {
+                "type": "BIGINT",
+                "value": "7"
+              },
+              {
+                "type": "BIGINT",
+                "value": "8"
+              },
+              {
+                "type": "BIGINT",
+                "value": "9"
+              },
+              {
+                "type": "BIGINT",
+                "value": "10"
+              }
+            ]
+          },
+          {
+            "name": "p5",
+            "type": "BIGINT",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "BIGINT",
+                "value": "9900"
+              },
+              {
+                "type": "BIGINT",
+                "value": "19800"
+              },
+              {
+                "type": "BIGINT",
+                "value": "29700"
+              },
+              {
+                "type": "BIGINT",
+                "value": "39600"
+              },
+              {
+                "type": "BIGINT",
+                "value": "49500"
+              },
+              {
+                "type": "BIGINT",
+                "value": "59400"
+              },
+              {
+                "type": "BIGINT",
+                "value": "69300"
+              },
+              {
+                "type": "BIGINT",
+                "value": "79200"
+              },
+              {
+                "type": "BIGINT",
+                "value": "89100"
+              },
+              {
+                "type": "BIGINT",
+                "value": "99000"
+              }
+            ]
+          },
+          {
+            "name": "p6",
+            "type": "VARCHAR",
+            "nullable": false,
+            "allowed": [
+              {
+                "type": "VARCHAR",
+                "value": "CREATED"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "next_ids": {
+      "purchase_orders": "9001"
+    },
+    "transaction": "READ-COMMITTED"
+  },
+  "verification": {
+    "expect_calls": {
+      "reserve-stock": {
+        "min": 1,
+        "max": 1
+      },
+      "insert-order": {
+        "min": 1,
+        "max": 1
+      },
+      "order-detail": {
+        "min": 2,
+        "max": 10
+      },
+      "list-orders": {
+        "min": 1,
+        "max": 10
+      },
+      "product-detail": {
+        "min": 3,
+        "max": 20
+      }
+    },
+    "final_state": [
+      {
+        "table": "products",
+        "where": {
+          "id": {
+            "type": "BIGINT",
+            "value": "1001"
+          }
+        },
+        "count": 1,
+        "fields": {
+          "id": {
+            "type": "BIGINT",
+            "value": "1001"
+          },
+          "name": {
+            "type": "VARCHAR",
+            "value": "测试键盘"
+          },
+          "price_cents": {
+            "type": "BIGINT",
+            "value": "9900"
+          },
+          "stock": {
+            "type": "BIGINT",
+            "value": "8"
+          },
+          "status": {
+            "type": "VARCHAR",
+            "value": "ON_SALE"
+          }
+        }
+      },
+      {
+        "table": "purchase_orders",
+        "where": {
+          "user_id": {
+            "type": "BIGINT",
+            "value": "2001"
+          }
+        },
+        "count": 1,
+        "fields": {
+          "id": {
+            "type": "BIGINT",
+            "value": "9001"
+          },
+          "product_id": {
+            "type": "BIGINT",
+            "value": "1001"
+          },
+          "product_name": {
+            "type": "VARCHAR",
+            "value": "测试键盘"
+          },
+          "price_cents": {
+            "type": "BIGINT",
+            "value": "9900"
+          },
+          "quantity": {
+            "type": "BIGINT",
+            "value": "2"
+          },
+          "total_cents": {
+            "type": "BIGINT",
+            "value": "19800"
+          },
+          "status": {
+            "type": "VARCHAR",
+            "value": "CREATED"
+          }
+        }
+      },
+      {
+        "table": "purchase_orders",
+        "where": {
+          "user_id": {
+            "type": "BIGINT",
+            "value": "2002"
+          }
+        },
+        "count": 0
+      }
+    ]
+  },
+  "replay": {
+    "seed": 42,
+    "clock": "2026-09-13T00:00:00Z",
+    "requires_generation": false
+  },
+  "preview": [
+    {
+      "statement_id": "list-products",
+      "params": [
+        {
+          "type": "VARCHAR",
+          "value": "ON_SALE"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "product-detail",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "1001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "list-orders",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "control": "BEGIN",
+      "connection": "preview"
+    },
+    {
+      "statement_id": "product-detail",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "1001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "reserve-stock",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "8"
+        },
+        {
+          "type": "BIGINT",
+          "value": "1001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "10"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "insert-order",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "1001"
+        },
+        {
+          "type": "VARCHAR",
+          "value": "测试键盘"
+        },
+        {
+          "type": "BIGINT",
+          "value": "9900"
+        },
+        {
+          "type": "BIGINT",
+          "value": "2"
+        },
+        {
+          "type": "BIGINT",
+          "value": "19800"
+        },
+        {
+          "type": "VARCHAR",
+          "value": "CREATED"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "order-detail",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "9001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "control": "COMMIT",
+      "connection": "preview"
+    },
+    {
+      "statement_id": "order-detail",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "9001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "list-orders",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "2001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "product-detail",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "1001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "order-detail",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "9001"
+        },
+        {
+          "type": "BIGINT",
+          "value": "2002"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "statement_id": "list-orders",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "2002"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "control": "BEGIN",
+      "connection": "preview"
+    },
+    {
+      "statement_id": "product-detail",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "1001"
+        }
+      ],
+      "connection": "preview"
+    },
+    {
+      "control": "ROLLBACK",
+      "connection": "preview"
+    },
+    {
+      "statement_id": "product-detail",
+      "params": [
+        {
+          "type": "BIGINT",
+          "value": "9999"
+        }
+      ],
+      "connection": "preview"
+    }
+  ]
+}

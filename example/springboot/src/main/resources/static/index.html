@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>商品下单示例</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f5f6f8;color:#18212d;font-family:system-ui,sans-serif;line-height:1.6}main{max-width:880px;margin:48px auto;padding:0 24px}h1{margin-bottom:4px}h2{font-size:20px;margin-top:0}.muted{color:#637082}section{background:white;border:1px solid #dbe1e8;border-radius:12px;padding:24px;margin:20px 0}button{background:#175cd3;color:white;border:0;border-radius:6px;padding:10px 18px;font:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:wait}input{width:90px;padding:8px;font:inherit;border:1px solid #aab4c1;border-radius:6px}article{display:flex;justify-content:space-between;align-items:center;gap:16px}#error{color:#a81818}#receipt{padding:12px;background:#edf8f1;border-radius:6px}ul{padding-left:20px}[hidden]{display:none!important}
+  </style>
+</head>
+<body><main>
+  <h1>商品下单示例</h1><p class="muted">浏览商品、选择数量，查看你的订单。</p>
+  <p id="error" role="alert" hidden></p>
+  <section><h2>商品</h2><div id="products" data-testid="product-list" aria-live="polite">正在加载…</div></section>
+  <section id="detail" hidden>
+    <h2 id="product-name"></h2><p>单价 <strong id="price"></strong> · 库存 <span id="stock" data-testid="stock"></span> 件</p>
+    <form id="order-form"><label for="quantity">购买数量</label> <input id="quantity" type="number" min="1" max="100" value="1" required> <button id="place" type="submit">下单</button></form>
+    <p id="receipt" data-testid="receipt" role="status" hidden></p>
+  </section>
+  <section><h2>我的订单</h2><button id="query-orders">查询我的订单</button><ul id="orders" data-testid="order-list" aria-live="polite"></ul></section>
+</main><script src="/app.js"></script></body></html>

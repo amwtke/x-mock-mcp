@@ -20,6 +20,8 @@ MCP 是 Coding Agent 的控制入口。Spring Boot JDBC 只连接我们左端的
 
 ## 构建与运行
 
+想直接体验商品查询与下单，使用独立示例 [example/springboot](example/springboot/README.md)。它带网页、一键运行和完整HTTP/浏览器测试，验证真实订单写入、库存扣减和失败回滚，全程只连接我们的MySQL协议插件。
+
 需要 Go 1.27.1、Python 3、Bash，以及构建右端离线 Java AST 解析器所需的 C 编译器（CGO）。安装编译好的插件包不需要 C 编译器。购物验收还需要 JDK 21、Maven 和 Playwright 配套 Chromium。当前实测平台为 macOS arm64；详细版本及限制见 [Plus 兼容性记录](docs/compatibility/p1-mybatis-plus.md)。
 
 ```bash

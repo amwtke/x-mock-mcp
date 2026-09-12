@@ -1,0 +1,85 @@
+{
+  "date": "2026-09-13",
+  "example": "example/springboot",
+  "platform": "darwin/arm64",
+  "packages": {
+    "left": {
+      "name": "mysql-wire",
+      "version": "0.1.0",
+      "sha256": "2c0fe19914d4dec09914e79d8bd2dc05a1786f36231f45f8eafac584df7f7b33"
+    },
+    "right": {
+      "name": "mysql-mock",
+      "version": "0.3.0",
+      "sha256": "f983aee43ab597218a00199da17ba7d53283c68e908489479685af6a09a344f0"
+    }
+  },
+  "qa": "mock/qa.md; product 1001, price 9900, initial stock 10, empty orders; order 9001 quantity 2 total 19800, final stock 8",
+  "tests": [
+    {
+      "test": "http",
+      "expected_application_state": "succeeded",
+      "test_passed": true,
+      "run_id": "652746c25122321da1aa53ce0a43f563",
+      "trace_sha256": "b3f1e105e2b4315ab1dd5bbbb574b68ff4bd47307faf0e84e10901cec1faea45"
+    },
+    {
+      "test": "browser",
+      "expected_application_state": "succeeded",
+      "test_passed": true,
+      "run_id": "945a8f9456509cda8d9a69c1375f28be",
+      "trace_sha256": "308b21abc6b10c46c0567b7cb178c34fc76c2ce780227779d6464a6ad9bd40a4"
+    },
+    {
+      "test": "missing-insert",
+      "expected_application_state": "failed",
+      "test_passed": true,
+      "run_id": "68d0d4d839cf104898b474b6844dd915",
+      "trace_sha256": "824682b18bff1103b6cf314cb710d11daad4b08e4444fcc08b5f85ea7778885c",
+      "observed_failure_state": {
+        "stock": 10,
+        "orders": 0
+      }
+    },
+    {
+      "test": "missing-stock-update",
+      "expected_application_state": "failed",
+      "test_passed": true,
+      "run_id": "2bf91f9d9421f48f8f6745879d8791e6",
+      "trace_sha256": "f1a3331ea8dc1e52829a4999e663be5a275718f9d5d76e483172ffcc20133d8e",
+      "observed_failure_state": {
+        "stock": 10,
+        "orders": 1
+      }
+    },
+    {
+      "test": "forced-rollback",
+      "expected_application_state": "failed",
+      "test_passed": true,
+      "run_id": "9e2254255d7eb2eceaf9f69b17ab40bb",
+      "trace_sha256": "b12042deaca1c5c578b57c80022e2d4b187b69efe50f4125a2cc476e7a5eb05f",
+      "observed_failure_state": {
+        "stock": 10,
+        "orders": 0
+      }
+    }
+  ],
+  "manual_run": {
+    "command": "bash example/springboot/run.sh --http-port 0 --mysql-port 0",
+    "http_requests_verified": 10,
+    "order_id": 9001,
+    "total_cents": 19800,
+    "final_stock": 8,
+    "environment_destroyed": true,
+    "owned_daemon_stopped": true
+  },
+  "verification": [
+    "example/springboot/prepare.sh passed",
+    "example/springboot/test.sh passed",
+    "scripts/verify-plus.sh passed including all old/new integration, race, vet, build, offline Mapper contracts",
+    "new example resolved Java dependencies passed database boundary audit"
+  ],
+  "database_services_installed_or_started": false,
+  "extra_model_api": false,
+  "generation": "Current Coding Agent prepared the reviewed candidate from QA/code/DDL; automated tests use StrictReplay, with no native-model E2E claim"
+}

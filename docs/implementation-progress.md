@@ -1,5 +1,15 @@
 # 实施记录
 
+## 商品查询与下单独立示例（2026-09-13）
+
+按用户指定创建 `example/springboot`，含独立Spring Boot/JdbcTemplate程序、商品/下单/订单网页、自然语言QA、DDL与场景、README、准备/测试/运行脚本。左端mysql-wire/0.1.0与右端mysql-mock/0.3.0均直接复用，包摘要保持不变；未修改协议或核心，未启动任何数据库或额外模型API。
+
+先运行真实HTTP红灯测试观察商品接口404，再实现商品查询、同事务扣库存与订单INSERT、生成键和写后读。全流程验证商品1001单价9900分/库存10，U1下单2件后订单9001/19800分、库存8。真实Chromium点击流程通过，HTTP额外验证用户隔离、身份401、缺失404、数量400、库存409。
+
+漏INSERT、漏库存UPDATE、强制事务回滚三个隔离源码负例均触发原QA断言失败；更新实际SHA且保留QA/SQL。应用退出前再经HTTP核对失败状态：漏INSERT及强制回滚均库存10/订单0；漏库存UPDATE为库存10/订单1。没有在生产代码中增加故障开关。
+
+`example/springboot/prepare.sh`、`test.sh`通过；`run.sh --http-port 0 --mysql-port 0`实际启动并完成10个HTTP请求，订单/库存/异常分支通过；SIGTERM清理后环境销毁、daemon正常停止。完整 `verify-plus.sh`全部通过，integration约237秒，新模块Java依赖另行通过无数据库引擎/启动库审计。见 [示例README](../example/springboot/README.md)、[实施计划](superpowers/plans/2026-09-13-springboot-orders.md) 和 [脱敏验收摘要](compatibility/springboot-orders-2026-09-13.json)。
+
 ## P1.3 MyBatis-Plus（2026-09-12）
 
 在当前会话逐项执行，未使用子代理。分支 `feat/p1-mybatis-plus`，复用 `.worktrees/p0`，基线 master a85214f。守住无真实数据库、无替代 SQL 引擎、无额外模型 API；左端对接应用，右端对接外部依赖，均独立插件。
