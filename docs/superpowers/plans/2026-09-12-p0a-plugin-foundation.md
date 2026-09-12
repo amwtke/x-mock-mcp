@@ -358,12 +358,12 @@ ctx 完成时原子摘除 pending，发送 cancel 通知并返回 ctx 错误；�
 
 ## Task A5: 进程策略代理与原子 binding
 
-- [ ] 先实现 testkit 的三个进程模式：正常 Describe/Start、Start 返回错误、启动后主动退出。进程模式由测试专用可执行文件参数确定，不在生产 Registry 中写测试插件名称分支。
-- [ ] 为创建 binding 编写失败测试：右端成功后左端失败，断言右端 Stop 被调用、两个 catalog 引用释放、路由未发布。运行 `go test ./internal/binding -run TestCreateRollsBack -count=1`。
-- [ ] Process 启动使用 exec.Command 的参数数组，入口从已验证安装目录解析；stdin/stdout 专用于 Peer，stderr 进入有界实例日志。Describe 返回的角色/API/契约必须与 manifest 一致。Start 限时 10 秒，Stop 限时 5 秒；超时结束所属进程并 Wait 回收。
-- [ ] 实现 LeftProxy/RightProxy，分别实现 A2 接口。左端回调 `dispatch` 的信封中，environment_id、binding_id、resource_id、run_id 由核心按实例归属覆写；插件不能伪造另一个环境的身份。
-- [ ] RightProxy 按声明转发 prepare/export/verify 扩展；为准备工具提供短生命周期进程路径：Acquire 已启用版本 → 启动进程/Describe → Prepare → 关闭 IPC/Wait → release。不调用 Start，不创建 binding 或端口；取消/崩溃也必须回收引用。配置准备时限 30 秒，不在这里等待 LLM。
-- [ ] 实现 binding.Manager 的算法：
+- [x] 先实现 testkit 的三个进程模式：正常 Describe/Start、Start 返回错误、启动后主动退出。进程模式由测试专用可执行文件参数确定，不在生产 Registry 中写测试插件名称分支。
+- [x] 为创建 binding 编写失败测试：右端成功后左端失败，断言右端 Stop 被调用、两个 catalog 引用释放、路由未发布。运行 `go test ./internal/binding -run TestCreateRollsBack -count=1`。
+- [x] Process 启动使用 exec.Command 的参数数组，入口从已验证安装目录解析；stdin/stdout 专用于 Peer，stderr 进入有界实例日志。Describe 返回的角色/API/契约必须与 manifest 一致。Start 限时 10 秒，Stop 限时 5 秒；超时结束所属进程并 Wait 回收。
+- [x] 实现 LeftProxy/RightProxy，分别实现 A2 接口。左端回调 `dispatch` 的信封中，environment_id、binding_id、resource_id、run_id 由核心按实例归属覆写；插件不能伪造另一个环境的身份。
+- [x] RightProxy 按声明转发 prepare/export/verify 扩展；为准备工具提供短生命周期进程路径：Acquire 已启用版本 → 启动进程/Describe → Prepare → 关闭 IPC/Wait → release。不调用 Start，不创建 binding 或端口；取消/崩溃也必须回收引用。配置准备时限 30 秒，不在这里等待 LLM。
+- [x] 实现 binding.Manager 的算法：
 
 ```text
 Validate requested references, enabled state, config and contract intersection
@@ -381,15 +381,15 @@ Manager 接口固定为 Create(ctx, Config) (Binding, error)、Dispatch(ctx, Req
 
 Dispatch 只按 bindingID 查已建立策略；调用右端 Execute；completed 返回 Payload，unsupported 返回其错误，needs_data 调用 DataStrategy.Resolve 后调用同一个右端 Complete。阶段切换校验截止时间与实例存活，禁止换到别的右端完成旧 continuation。Dispatch 返回前调用一次 OutcomeObserver，报告最终 payload 或错误；DataStrategy 本身不调用右端 Complete。
 
-- [ ] 创建能力不相交、重复端口、重复销毁、并发创建/销毁测试。测试右端崩溃后取消相关请求并关闭同 binding 左端；另一个 binding 继续完成请求。创建环境含多 binding 时，某一个创建失败也撤销本环境已创建的其他 binding。
-- [ ] 用声明 scenario.prepare 的测试进程验证准备无需左端、不会监听应用端口、停用后不能准备、准备期间不能卸载、取消后引用释放；测试插件只回传 opaque 输入，核心不解释 QA 或 DDL。
-- [ ] 运行 `go test -race ./internal/plugin/runtime ./internal/binding -count=1`。提交：`feat: bind isolated plugin strategies with rollback`。
+- [x] 创建能力不相交、重复端口、重复销毁、并发创建/销毁测试。测试右端崩溃后取消相关请求并关闭同 binding 左端；另一个 binding 继续完成请求。创建环境含多 binding 时，某一个创建失败也撤销本环境已创建的其他 binding。
+- [x] 用声明 scenario.prepare 的测试进程验证准备无需左端、不会监听应用端口、停用后不能准备、准备期间不能卸载、取消后引用释放；测试插件只回传 opaque 输入，核心不解释 QA 或 DDL。
+- [x] 运行 `go test -race ./internal/plugin/runtime ./internal/binding -count=1`。提交：`feat: bind isolated plugin strategies with rollback`。
 
 ## Task A6: 双端真实插件验收
 
-- [ ] 在两个 testkit 插件 main 中实现统一 Plugin API。左端监听 `127.0.0.1:0`，每行接收 `{"value":"hello"}` 并 dispatch；右端返回 `{"value":"hello","instance_id":"configured-id"}`。右端只持有其实例配置，核心不认识这个 payload。
-- [ ] 使用测试工具分别编译、打包两个插件，安装到同一个临时项目；测试只调用 catalog、runtime、binding 公共 API，不从测试中直接 new 右端具体类型。
-- [ ] 执行以下真实外部行为场景，每个场景拥有独立项目和 cleanup：
+- [x] 在两个 testkit 插件 main 中实现统一 Plugin API。左端监听 `127.0.0.1:0`，每行接收 `{"value":"hello"}` 并 dispatch；右端返回 `{"value":"hello","instance_id":"configured-id"}`。右端只持有其实例配置，核心不认识这个 payload。
+- [x] 使用测试工具分别编译、打包两个插件，安装到同一个临时项目；测试只调用 catalog、runtime、binding 公共 API，不从测试中直接 new 右端具体类型。
+- [x] 执行以下真实外部行为场景，每个场景拥有独立项目和 cleanup：
 
 ```text
 TestPluginLifecycle:
@@ -412,6 +412,6 @@ TestPluginExtensionWithoutCoreImport:
   -> route through it without rebuilding or changing core packages
 ```
 
-- [ ] 运行 `go test -race ./integration -run 'TestPlugin|TestContractMismatch' -count=1`，然后运行 `go test ./... -count=1`。后一个命令此时只覆盖已创建的 P0A 包。
-- [ ] 用 `go list -deps ./internal/binding ./internal/plugin/catalog` 检查没有 contracts/mysqlv1、plugins 或 MCP SDK 导入。将这个依赖约束加入 integration 的 Go 包依赖检查，防止未来协议实现渗入核心。
-- [ ] 提交：`test: verify installable dual-end plugins across processes`。P0A 完成后继续 P0B，不宣称数据库兼容已完成。
+- [x] 运行 `go test -race ./integration -run 'TestPlugin|TestContractMismatch' -count=1`，然后运行 `go test ./... -count=1`。后一个命令此时只覆盖已创建的 P0A 包。
+- [x] 用 `go list -deps ./internal/binding ./internal/plugin/catalog` 检查没有 contracts/mysqlv1、plugins 或 MCP SDK 导入。将这个依赖约束加入 integration 的 Go 包依赖检查，防止未来协议实现渗入核心。
+- [x] 提交：`test: verify installable dual-end plugins across processes`。P0A 完成后继续 P0B，不宣称数据库兼容已完成。

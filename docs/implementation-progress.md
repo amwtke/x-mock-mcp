@@ -10,8 +10,8 @@
 | A2 通用插件契约 | 完成 | 先观察缺少类型导致失败，随后 go test ./pluginapi 通过；覆盖角色/版本、互斥结果、资料缺口 |
 | A3 插件包生命周期 | 完成 | go test -race ./internal/plugin/catalog 通过；独立角色、活动引用、并发、路径/摘要/平台/链接/重复包及失败清理 |
 | A4 并发 IPC | 完成 | go test -race ./internal/plugin/ipc 通过；乱序、取消、写阻塞时取消、EOF、panic、4 MiB 上限与非法帧 |
-| A5 进程代理与 binding | 待执行 | 无 |
-| A6 真实插件验证 | 待执行 | 无 |
+| A5 进程代理与 binding | 完成 | runtime/binding race 测试、真实启动回滚、端口占用与准备进程回收通过 |
+| A6 真实插件验证 | 完成 | 真实 TCP/子进程生命周期、崩溃隔离、新 ID 插件、无左端准备通过；go test ./... 通过 |
 | B1 MySQL 类型契约 | 待执行 | 无 |
 | B2 QA 输入与编译 | 待执行 | 无 |
 | B3 右端查询 | 待执行 | 无 |
